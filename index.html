@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#34163f">
+<title>Bandas Fantasy</title>
+<style>
+:root{--v:#34163f;--v2:#4d2a5c;--oro:#c79a3b;--tinta:#1d1523;--fondo:#ece8f0;--tarj:#fff;--gris:#6b6074;--lin:#d9d1df}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fondo);color:var(--tinta);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+h1,h2{font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;margin:0;font-weight:700}
+h2{font-size:1.15rem;margin-bottom:8px}
+main{max-width:520px;margin:0 auto;padding:16px}
+section{background:var(--tarj);border-radius:10px;padding:16px;margin-bottom:14px;border:1px solid var(--lin)}
+label{display:block;font-weight:600;margin:12px 0 0}
+input{display:block;width:100%;margin-top:4px;padding:11px 12px;font:inherit;border:1px solid var(--lin);border-radius:8px;background:#fff}
+input:focus,button:focus-visible{outline:3px solid var(--oro);outline-offset:1px}
+button{font:inherit;font-weight:600;border:0;border-radius:8px;padding:11px 16px;background:var(--v);color:#fff;cursor:pointer}
+button:disabled{opacity:.35;cursor:not-allowed}
+button.link{background:none;color:var(--v2);text-decoration:underline;display:block;margin:10px auto 0}
+.auth,.crear{padding-top:44px}
+.auth h1,.crear h1{font-size:2.2rem;color:var(--v)}
+.auth .lema{color:var(--gris);margin:4px 0 12px}
+.auth>button,.crear>button{width:100%;margin-top:16px}
+.cab{background:var(--v);color:#fff;padding:calc(18px + env(safe-area-inset-top)) 18px 18px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:4px solid var(--oro)}
+.cab h1{font-size:1.5rem;color:var(--oro);line-height:1.15}
+.cab small{opacity:.75}
+.caja{text-align:right;display:flex;flex-direction:column}
+.caja b{font-size:1.15rem}
+.big{font-size:1.05rem;margin:0 0 8px}
+.filas{list-style:none;margin:0;padding:0}
+.filas li{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-top:1px solid var(--lin)}
+.filas li:first-child{border-top:0}
+.filas small{color:var(--gris)}
+.bt{display:flex;gap:8px}
+.bt button{padding:7px 14px}
+.barra{height:14px;background:var(--oro);border-radius:7px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--v)}
+.fila2{display:flex;justify-content:space-between;margin-top:6px;font-weight:600}
+.nota{color:var(--gris);margin:8px 0 0}
+.resumen{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px;padding:12px;background:#fff;border:1px solid var(--lin);border-radius:8px}
+.aviso{background:#fbe9e7;color:#8a1c10;border-radius:8px;padding:10px 12px;margin-top:12px}
+.aviso.fijo{position:fixed;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:5;max-width:496px;margin:0 auto}
+.nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#fff;border-top:1px solid var(--lin);padding:8px 8px calc(8px + env(safe-area-inset-bottom));gap:6px}
+.nav button{flex:1;background:none;color:var(--gris)}
+.nav button.on{background:var(--v);color:#fff}
+.rank{list-style:none;margin:0;padding:0}
+.rank li{display:flex;align-items:center;gap:12px;padding:10px 6px;border-top:1px solid var(--lin)}
+.rank li:first-child{border-top:0}
+.rank li.yo{background:#f6efd9;border-radius:8px}
+.rank .pos{font:700 1.2rem Georgia,serif;width:28px;text-align:center;color:var(--v2)}
+.rank div{display:flex;flex-direction:column}
+.rank small{color:var(--gris)}
+.rank .num{margin-left:auto;text-align:right}
+@media (prefers-reduced-motion:no-preference){button{transition:background .15s}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const app = document.getElementById('app'), EM = '@bandasfantasy.app';
+let P = {}, B = null, tab = 'inicio';
+const SEC = {bateria:['Batería',80], cornetas:['Cornetas',100], percusion:['Percusión',30], madera:['Viento madera',0], metal:['Viento metal',70]};
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const eur = n => Number(n).toLocaleString('es-ES') + ' €';
+const tot = b => Object.keys(SEC).reduce((a, k) => a + b[k], 0);
+const traducir = m => ({'Invalid login credentials':'Usuario o contraseña incorrectos.','User already registered':'Ese usuario ya existe.'}[m] || m);
+const aviso = t => { const e = document.getElementById('aviso'); if (e) { e.textContent = t; e.hidden = !t; } };
+
+function vistaAuth(reg) {
+  app.innerHTML = `<main class="auth"><h1>Bandas Fantasy</h1>
+  <p class="lema">Crea tu banda, gana contratos y compite por la Semana Santa.</p>
+  <label>Usuario<input id="u" autocomplete="username" autocapitalize="none"></label>
+  <label>Contraseña<input id="p" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}"></label>
+  <p id="aviso" class="aviso" hidden></p>
+  <button id="go">${reg ? 'Crear cuenta' : 'Entrar'}</button>
+  <button class="link" id="alt">${reg ? 'Ya tengo cuenta' : 'Quiero registrarme'}</button></main>`;
+  document.getElementById('go').onclick = () => entrar(reg);
+  document.getElementById('alt').onclick = () => vistaAuth(!reg);
+}
+
+async function entrar(reg) {
+  const u = document.getElementById('u').value.trim().toLowerCase(), p = document.getElementById('p').value;
+  if (!/^[a-z0-9_]{3,20}$/.test(u)) return aviso('Usuario: de 3 a 20 caracteres, solo letras sin tilde, números o guion bajo.');
+  if (p.length < 6) return aviso('La contraseña necesita al menos 6 caracteres.');
+  const cred = {email: u + EM, password: p};
+  const {data, error} = reg ? await sb.auth.signUp(cred) : await sb.auth.signInWithPassword(cred);
+  if (error) return aviso(traducir(error.message));
+  if (reg && !data.session) return aviso('Cuenta creada, pero Supabase pide confirmar el correo. Desactiva «Confirm email» en Authentication.');
+  init();
+}
+
+async function init() {
+  const {data: {session}} = await sb.auth.getSession();
+  if (!session) return vistaAuth(false);
+  const {data: ps, error: e1} = await sb.from('parametros').select('*');
+  if (e1) { app.innerHTML = '<main><section><h2>No se pudo cargar el juego</h2><p class="nota">' + esc(e1.message) + '</p></section></main>'; return; }
+  P = {}; ps.forEach(x => P[x.clave] = Number(x.valor));
+  const {data: b} = await sb.from('bandas').select('*, repertorio(marchas(estilo))').eq('id', session.user.id).maybeSingle();
+  B = b;
+  b ? vistaApp() : vistaCrear();
+}
+
+function vistaCrear() {
+  const min = P.min_musicos, pr = P.precio_musico + P.precio_uniforme;
+  app.innerHTML = `<main class="crear"><h1>Funda tu banda</h1>
+  <p>Necesitas al menos ${min} músicos, cada uno con su uniforme (${eur(pr)} por músico). Tu dinero inicial es ${eur(P.dinero_inicial)}.</p>
+  <label>Nombre de la banda<input id="nb" maxlength="40"></label>
+  ${Object.entries(SEC).map(([k, [n]]) => `<label>${n}<input type="number" min="0" value="6" inputmode="numeric" data-s="${k}"></label>`).join('')}
+  <div class="resumen" id="res"></div><p id="aviso" class="aviso" hidden></p>
+  <button id="go">Fundar banda</button></main>`;
+  const ins = [...app.querySelectorAll('[data-s]')];
+  const num = i => Math.max(0, parseInt(i.value) || 0);
+  const calc = () => {
+    const n = ins.reduce((a, i) => a + num(i), 0), c = n * pr;
+    document.getElementById('res').innerHTML = `<span><b>${n}</b> músicos</span><span>Coste <b>${eur(c)}</b></span><span>Te quedan <b>${eur(P.dinero_inicial - c)}</b></span>`;
+    document.getElementById('go').disabled = !(n >= min && c <= P.dinero_inicial);
+  };
+  ins.forEach(i => i.oninput = calc); calc();
+  document.getElementById('go').onclick = async () => {
+    const a = {p_nombre: document.getElementById('nb').value};
+    ins.forEach(i => a['p_' + i.dataset.s] = num(i));
+    const {error} = await sb.rpc('crear_banda', a);
+    if (error) return aviso(error.message.includes('duplicate') ? 'Ese nombre de banda ya está cogido.' : error.message);
+    init();
+  };
+}
+
+function perfil() {
+  const r = B.repertorio || [], f = r.filter(x => x.marchas.estilo === 'Fúnebre').length, t = tot(B) || 1;
+  const pot = Math.round(Object.entries(SEC).reduce((a, [k, [, w]]) => a + B[k] * w, 0) / t);
+  return {nm: r.length, pf: r.length ? Math.round(f * 100 / r.length) : 0, pot};
+}
+
+function vistaApp() {
+  const nav = [['inicio', 'Inicio'], ['tienda', 'Tienda'], ['ranking', 'Ranking']];
+  app.innerHTML = `<header class="cab"><div><h1>${esc(B.nombre)}</h1><small>${esc(B.usuario)}</small></div>
+  <div class="caja"><b>${eur(B.dinero)}</b><small>Nivel ${B.nivel}</small></div></header>
+  <main id="vista"></main><div id="aviso" class="aviso fijo" hidden></div>
+  <nav class="nav">${nav.map(([k, n]) => `<button class="${k === tab ? 'on' : ''}" data-t="${k}">${n}</button>`).join('')}<button id="salir">Salir</button></nav>`;
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; vistaApp(); });
+  document.getElementById('salir').onclick = async () => { await sb.auth.signOut(); B = null; vistaAuth(false); };
+  ({inicio: pInicio, tienda: pTienda, ranking: pRanking})[tab]();
+}
+
+function pInicio() {
+  const p = perfil();
+  document.getElementById('vista').innerHTML = `
+  <section><h2>Plantilla</h2><p class="big">${tot(B)} músicos con ${tot(B)} uniformes</p>
+  <ul class="filas">${Object.entries(SEC).map(([k, [n]]) => `<li><span>${n}</span><b>${B[k]}</b></li>`).join('')}</ul></section>
+  <section><h2>Estilo de la banda</h2><div class="barra"><i style="width:${p.pf}%"></i></div>
+  <div class="fila2"><span>Fúnebre ${p.pf}%</span><span>Alegre ${100 - p.pf}%</span></div>
+  <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>
+  <section><h2>Noticias</h2><p class="nota">Todavía no hay noticias. Cuando abra la temporada verás aquí los contratos, el parte del tiempo y la crónica de cada jornada.</p></section>`;
+}
+
+function pTienda() {
+  const pr = P.precio_musico + P.precio_uniforme, v = document.getElementById('vista');
+  v.innerHTML = `<section><h2>Músicos</h2><p class="nota">Cada músico cuesta ${eur(pr)} con su uniforme.</p>
+  <ul class="filas">${Object.entries(SEC).map(([k, [n]]) => `<li><span>${n} <small>(${B[k]})</small></span><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${B.dinero < pr * c ? 'disabled' : ''}>+${c}</button>`).join('')}</span></li>`).join('')}</ul></section>
+  <section><h2>Próximamente</h2><p class="nota">El montaje de marchas, el banderín, el diseño del uniforme y el disco llegarán con la temporada.</p></section>`;
+  v.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
+    const {error} = await sb.rpc('comprar_musicos', {p_seccion: b.dataset.k, p_cantidad: +b.dataset.c});
+    if (error) return aviso(error.message);
+    await init();
+  });
+}
+
+async function pRanking() {
+  const v = document.getElementById('vista');
+  v.innerHTML = '<section><h2>Ranking</h2><p class="nota">Cargando…</p></section>';
+  const {data, error} = await sb.from('bandas').select('id,nombre,usuario,nivel,experiencia,prestigio')
+    .order('nivel', {ascending: false}).order('experiencia', {ascending: false}).order('prestigio', {ascending: false});
+  if (error) return aviso(error.message);
+  v.innerHTML = `<section><h2>Ranking</h2><ol class="rank">${data.map((b, i) => `<li class="${b.id === B.id ? 'yo' : ''}"><span class="pos">${i + 1}</span>
+  <div><b>${esc(b.nombre)}</b><small>${esc(b.usuario)}</small></div>
+  <div class="num"><b>Nivel ${b.nivel}</b><small>${b.experiencia} xp</small></div></li>`).join('')}</ol></section>`;
+}
+
+init();
+</script>
+</body>
+</html>
