@@ -75,6 +75,8 @@ const NAV = [['inicio', 'Inicio', '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>'], [
 const h = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const eur = n => Number(n).toLocaleString('es-ES') + ' €';
 const tot = b => Object.keys(SEC).reduce((a, k) => a + b[k], 0);
+const tope = k => P['max_' + k] || Infinity;
+const DEF = {bateria: 6, cornetas: 4, percusion: 4, madera: 8, metal: 8};
 const escudo = (n, s) => `<img src="escudos/escudo-${String(n || 1).padStart(2, '0')}.png" width="${s}" height="${s}" alt="">`;
 const traducir = m => ({'Invalid login credentials': 'Usuario o contraseña incorrectos.', 'User already registered': 'Ese usuario ya existe.'}[m] || m);
 const aviso = t => { const e = document.getElementById('aviso'); if (e) { e.textContent = t; e.hidden = !t; } };
@@ -126,11 +128,11 @@ function vistaCrear() {
   <div class="lbl">Así se llamará tu banda</div><div id="prev" class="prev"></div>
   <p class="nota">Solo da realismo al nombre: no influye en el juego.</p></section>
   <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${F.esc === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}" aria-pressed="${F.esc === i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div></section>
-  <section><h2>Plantilla inicial</h2><p class="nota" style="margin:0 0 4px">Mínimo ${min} músicos. Cada uno cuesta ${eur(pr)} con su uniforme.</p>
-  ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b><label for="s_${k}" style="margin:0;font-size:16px">${n}</label></b><input id="s_${k}" type="number" min="0" value="6" inputmode="numeric" data-s="${k}"></div>`).join('')}</section>
+  <section><h2>Plantilla inicial</h2><p class="nota" style="margin:0 0 4px">Mínimo ${min} músicos. Cada uno cuesta ${eur(pr)} con su uniforme. Cornetas: máximo ${tope('cornetas')}. Percusión: máximo ${tope('percusion')} (dos cajas, bombo y platillo).</p>
+  ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b><label for="s_${k}" style="margin:0;font-size:16px">${n}${tope(k) < Infinity ? ` <small style="color:var(--gris);font-weight:600">(máx. ${tope(k)})</small>` : ''}</label></b><input id="s_${k}" type="number" min="0" ${tope(k) < Infinity ? `max="${tope(k)}"` : ''} value="${DEF[k]}" inputmode="numeric" data-s="${k}"></div>`).join('')}</section>
   <section style="border:2px solid var(--oro)"><div class="res" id="res"></div></section>
   <p id="aviso" class="aviso" hidden></p><button id="go" class="fund">Fundar banda</button></main>`;
-  const ins = [...app.querySelectorAll('[data-s]')], num = i => Math.max(0, parseInt(i.value) || 0);
+  const ins = [...app.querySelectorAll('[data-s]')], num = i => Math.min(tope(i.dataset.s), Math.max(0, parseInt(i.value) || 0));
   const calc = () => {
     const n = ins.reduce((a, i) => a + num(i), 0), c = n * pr;
     document.getElementById('prev').innerHTML = h(nombreFinal()) || `<span class="ph">${h(F.tipo)} «Tu nombre»</span>`;
@@ -182,7 +184,7 @@ function pInicio() {
 function pTienda() {
   const pr = P.precio_musico + P.precio_uniforme, v = document.getElementById('vista');
   v.innerHTML = `<section><h2>Músicos</h2><p class="nota" style="margin:0 0 4px">Cada músico cuesta ${eur(pr)} con su uniforme.</p>
-  ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${B.dinero < pr * c ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
+  ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${B.dinero < pr * c || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
   <section><h2>Próximamente</h2><p class="nota" style="margin:0">El montaje de marchas, el banderín, el diseño del uniforme y el disco llegarán con la temporada.</p></section>`;
   v.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
     const {error} = await sb.rpc('comprar_musicos', {p_seccion: b.dataset.k, p_cantidad: +b.dataset.c});
