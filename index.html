@@ -63,6 +63,14 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .bw u{position:absolute;top:-3px;width:2px;height:14px;background:var(--tinta)}
 .est{margin-top:12px;padding:10px 12px;border-radius:10px;background:#efe9f3;color:var(--gris);font-size:14px}
 .est.l{background:#f6efd9;color:var(--tinta);font-weight:700}
+.dots{display:flex;gap:6px;margin:8px 0}.dots i{width:16px;height:16px;border-radius:50%;background:var(--oro);border:2px solid var(--v2)}.dots i.off{background:transparent;border-color:#cfc5d6}
+.xp{height:10px;border-radius:5px;background:#efe9f3;overflow:hidden;margin-top:6px}.xp i{display:block;height:100%;background:var(--oro)}
+.ov{position:fixed;inset:0;z-index:20;background:linear-gradient(160deg,#2a1238,#4a2466);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;overflow:auto}
+.ov h2{color:var(--oro2);font-size:34px;margin:0}.ov p{max-width:420px;margin:0}
+.beat{width:160px;height:160px;border-radius:50%;border:6px solid var(--oro);transition:background .08s,transform .08s}
+.beat.on{background:var(--oro);transform:scale(1.08)}
+.ov .b2{background:var(--oro);color:var(--v);width:100%;max-width:380px;height:56px;font-size:18px}
+.ov .b3{background:rgba(255,255,255,.14);color:#fff;width:100%;max-width:420px;height:auto;min-height:56px;padding:12px 14px;text-align:left}
 </style>
 </head>
 <body>
@@ -120,6 +128,7 @@ async function init() {
   const {data: ps, error: e1} = await sb.from('parametros').select('*');
   if (e1) { app.innerHTML = '<main><section><h2>No se pudo cargar el juego</h2><p class="nota">' + h(e1.message) + '</p></section></main>'; return; }
   P = {}; ps.forEach(x => P[x.clave] = Number(x.valor));
+  await sb.rpc('refrescar_dia');
   const {data: b} = await sb.from('bandas').select('*, repertorio(marchas(estilo))').eq('id', session.user.id).maybeSingle();
   B = b;
   b ? vistaApp() : vistaCrear();
@@ -181,20 +190,29 @@ function vistaApp() {
 }
 
 function pInicio() {
-  const p = perfil();
+  const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1);
+  const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
   document.getElementById('vista').innerHTML = `
+  <section><h2>Día de ensayo</h2><div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
+  <div class="dots" aria-hidden="true">${Array.from({length: P.acciones_dia}, (_, i) => `<i class="${i < a ? '' : 'off'}"></i>`).join('')}</div>
+  <button id="ens" class="fund" style="margin-top:10px" ${a < 1 ? 'disabled' : ''}>Ensayar (1 acción)</button>
+  <div class="fila2"><span>Nivel ${B.nivel}</span><span>${B.experiencia} xp</span></div><div class="xp"><i style="width:${prog}%"></i></div>
+  <p class="nota">${B.nivel >= 20 ? 'Nivel máximo.' : 'Siguiente nivel: ' + sig + ' xp.'} Las acciones se renuevan a las 00:00.</p></section>
   <section><h2>Plantilla</h2><p style="margin:0 0 4px;color:var(--gris);font-size:14px">${tot(B)} músicos con ${tot(B)} uniformes</p>
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n}</b><span class="num">${B[k]}</span></div>`).join('')}</section>
   <section><h2>Estilo de la banda</h2><div class="barra"><i style="width:${p.pf}%"></i></div>
   <div class="fila2"><span>Fúnebre ${p.pf} %</span><span>Alegre ${100 - p.pf} %</span></div>
   <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>
   <section><h2>Noticias</h2><p class="nota" style="margin:0">Todavía no hay noticias. Cuando abra la temporada verás aquí los contratos, el parte del tiempo y la crónica de cada jornada.</p></section>`;
+  document.getElementById('ens').onclick = ensayar;
 }
 
 function pTienda() {
   const pr = P.precio_musico + P.precio_uniforme, v = document.getElementById('vista');
-  v.innerHTML = `<section><h2>Músicos</h2><p class="nota" style="margin:0 0 4px">Cada músico cuesta ${eur(pr)} con su uniforme.</p>
-  ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${B.dinero < pr * c || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
+  const mx = P.plantilla_base + P.plantilla_nivel * (B.nivel - 1), n0 = tot(B);
+  v.innerHTML = `<section><h2>Músicos</h2><p class="nota" style="margin:0">Cada músico cuesta ${eur(pr)} con su uniforme. Cada compra gasta 1 acción (te quedan ${B.acciones}).</p>
+  <p class="nota" style="margin:4px 0 4px">Plantilla: ${n0} de ${mx} (máximo de tu nivel).</p>
+  ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${B.acciones < 1 || B.dinero < pr * c || n0 + c > mx || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
   <section><h2>Próximamente</h2><p class="nota" style="margin:0">El montaje de marchas, el banderín, el diseño del uniforme y el disco llegarán con la temporada.</p></section>`;
   v.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
     const {error} = await sb.rpc('comprar_musicos', {p_seccion: b.dataset.k, p_cantidad: +b.dataset.c});
@@ -237,6 +255,49 @@ async function pContratos() {
   <div class="chips">${[['todas', 'Todas'], ['libres', 'A tu alcance']].map(([k, n]) => `<button class="seg ${fil === k ? 'on' : ''}" data-f="${k}" aria-pressed="${fil === k}">${n}</button>`).join('')}</div>
   ${JORN.map(j => { const hs = lista.filter(x => x.jornada === j); return hs.length ? `<h2 class="jh">${j}</h2>` + hs.map(x => tarjeta(x, est(x), p)).join('') : ''; }).join('')}`;
   v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { fil = b.dataset.f; pContratos(); });
+}
+
+let IMP = null;
+const xpDe = n => 100 * (n - 1) ** 2;
+const ov = html => { let e = document.getElementById('ov'); if (!e) { e = document.createElement('div'); e.id = 'ov'; e.className = 'ov'; document.body.appendChild(e); } e.innerHTML = html; return e; };
+const fin = (titulo, msg) => { ov(`<h2>${titulo}</h2><p>${msg}</p><button class="b2" id="ok">Continuar</button>`); document.getElementById('ok').onclick = () => { document.getElementById('ov').remove(); init(); }; };
+
+async function ensayar() {
+  if (B.acciones < 1) return aviso('No te quedan acciones hoy.');
+  if (!IMP) { const {data} = await sb.from('imprevistos').select('*').order('id'); IMP = data || []; }
+  IMP.length && Math.random() < 0.35 ? imprevisto(IMP[Math.floor(Math.random() * IMP.length)]) : pulso();
+}
+
+function pulso() {
+  const N = 12, GAP = 800, beats = [], taps = []; let acabado = false;
+  ov(`<h2>Pulso de la banda</h2><p>Toca al ritmo cuando el círculo se ilumine. Los dos primeros golpes son de calentamiento.</p><div class="beat" id="bt"></div><button class="b2" id="tap">Tocar</button><button class="b3" id="sk" style="text-align:center">Saltar (resultado bajo)</button>`);
+  const bt = document.getElementById('bt'), t0 = performance.now() + 1200;
+  document.getElementById('tap').onpointerdown = () => taps.push(performance.now());
+  const enviar = async sc => {
+    if (acabado) return; acabado = true;
+    const {data, error} = await sb.rpc('ensayar_pulso', {p_puntuacion: sc});
+    if (error) { document.getElementById('ov').remove(); return aviso(error.message); }
+    fin('Ensayo terminado', `Puntuación del pulso: ${sc} de 100. Ganas ${data} xp.`);
+  };
+  document.getElementById('sk').onclick = () => enviar(30);
+  for (let i = 0; i < N; i++) {
+    beats.push(t0 + i * GAP);
+    setTimeout(() => { bt.classList.add('on'); setTimeout(() => bt.classList.remove('on'), 150); }, t0 + i * GAP - performance.now());
+  }
+  setTimeout(() => {
+    let s = 0;
+    beats.slice(2).forEach(b => { const d = Math.min(999, ...taps.map(x => Math.abs(x - b))); s += Math.max(0, 1 - d / 350); });
+    enviar(Math.round(100 * s / (N - 2)));
+  }, t0 + (N - 1) * GAP + 600 - performance.now());
+}
+
+function imprevisto(ev) {
+  const e = ov(`<h2>${h(ev.titulo)}</h2><p>${h(ev.texto)}</p>${ev.opciones.map((o, i) => `<button class="b3" data-o="${i}">${h(o.texto)}${o.coste ? ' (' + eur(o.coste) + ')' : ''}</button>`).join('')}`);
+  e.querySelectorAll('[data-o]').forEach(b => b.onclick = async () => {
+    const {data, error} = await sb.rpc('resolver_imprevisto', {p_id: ev.id, p_opcion: +b.dataset.o});
+    if (error) { document.getElementById('ov').remove(); return aviso(error.message); }
+    fin('Ensayo terminado', `Ganas ${data.xp} xp.` + (data.coste ? ` Gastas ${eur(data.coste)}.` : '') + (data.multa ? ' Ha saltado una multa.' : ''));
+  });
 }
 
 async function pRanking() {
