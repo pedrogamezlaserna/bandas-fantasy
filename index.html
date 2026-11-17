@@ -53,6 +53,16 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .rank .pos{font:700 22px "Cormorant Garamond",serif;width:26px;text-align:center;color:var(--v2)}
 .rank .nm{flex:1;min-width:0}.rank .nm b{display:block;line-height:1.2}.rank small{color:var(--gris)}
 .rank .r{text-align:right;flex:none}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.jh{font-size:24px;margin:22px 4px 0;color:var(--v)}
+.hc{padding:14px 16px}.hh{display:flex;justify-content:space-between;align-items:center;gap:8px}.hh h2{margin:0}
+.pill{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:700;background:#e4dcea;color:var(--v);flex:none}.p2{background:#efe6f7;color:var(--v2)}
+.lbl2{color:var(--gris);font-size:13px;margin-top:10px}.ba{display:flex;align-items:center;gap:8px}.ba b{flex:1;line-height:1.2}
+.cm{display:flex;justify-content:space-between;font-size:13px;margin-top:12px}.cm span:last-child{color:var(--gris)}
+.bw{position:relative;margin-top:4px}.barra2{height:8px;border-radius:4px;background:#efe9f3;overflow:hidden}.barra2 i{display:block;height:100%}
+.bw u{position:absolute;top:-3px;width:2px;height:14px;background:var(--tinta)}
+.est{margin-top:12px;padding:10px 12px;border-radius:10px;background:#efe9f3;color:var(--gris);font-size:14px}
+.est.l{background:#f6efd9;color:var(--tinta);font-weight:700}
 </style>
 </head>
 <body>
@@ -71,7 +81,7 @@ const SEC = {
   percusion: ['Percusión', 30, '<circle cx="8" cy="13" r="5"/><circle cx="17" cy="9" r="4"/>'],
   madera: ['Viento madera', 0, '<path d="M4 20L20 4"/><circle cx="9" cy="15" r=".8"/><circle cx="12" cy="12" r=".8"/><circle cx="15" cy="9" r=".8"/>'],
   metal: ['Viento metal', 70, '<path d="M3 11h9M3 13h9M12 8l8-3v14l-8-3z"/>']};
-const NAV = [['inicio', 'Inicio', '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>'], ['tienda', 'Tienda', '<path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 016 0v2"/>'], ['ranking', 'Ranking', '<path d="M8 4h8v5a4 4 0 01-8 0zM8 6H4v1a4 4 0 004 4M16 6h4v1a4 4 0 01-4 4M12 13v4M8 20h8"/>']];
+const NAV = [['inicio', 'Inicio', '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>'], ['contratos', 'Contratos', '<path d="M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6"/>'], ['tienda', 'Tienda', '<path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 016 0v2"/>'], ['ranking', 'Ranking', '<path d="M8 4h8v5a4 4 0 01-8 0zM8 6H4v1a4 4 0 004 4M16 6h4v1a4 4 0 01-4 4M12 13v4M8 20h8"/>']];
 const h = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const eur = n => Number(n).toLocaleString('es-ES') + ' €';
 const tot = b => Object.keys(SEC).reduce((a, k) => a + b[k], 0);
@@ -167,7 +177,7 @@ function vistaApp() {
   <nav class="nav">${NAV.map(([k, n, d]) => `<button class="${k === tab ? 'on' : ''}" data-t="${k}">${ic(d)}${n}</button>`).join('')}<button id="salir">${ic('<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>')}Salir</button></nav>`;
   app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; vistaApp(); });
   document.getElementById('salir').onclick = async () => { await sb.auth.signOut(); B = null; vistaAuth(false); };
-  ({inicio: pInicio, tienda: pTienda, ranking: pRanking})[tab]();
+  ({inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking})[tab]();
 }
 
 function pInicio() {
@@ -191,6 +201,42 @@ function pTienda() {
     if (error) return aviso(error.message);
     await init();
   });
+}
+
+const JORN = ['Vísperas', 'Domingo de Ramos', 'Lunes Santo', 'Martes Santo', 'Miércoles Santo', 'Jueves Santo', 'Madrugá', 'Viernes Santo', 'Sábado Santo', 'Domingo de Resurrección'];
+let H = null, fil = 'todas';
+const compat = (x, p) => Math.round(0.7 * (100 - Math.abs(p.pf - x.pct_funebre)) + 0.3 * (100 - Math.abs(p.pot - (100 - x.pct_funebre))));
+
+function tarjeta(x, e, p) {
+  const c = compat(x, p), bn = x.bandas_ficticias ? x.bandas_ficticias.nombre : 'Sin banda';
+  let cuerpo;
+  if (e === 's') cuerpo = '<div class="est">Sin banda de música. Va en silencio: solo un cabildo extraordinario podría contratar una.</div>';
+  else {
+    const mot = [B.nivel < x.nivel_min ? 'nivel' : '', c < x.compat_min ? 'compatibilidad' : ''].filter(Boolean).join(' y ');
+    cuerpo = `<div class="lbl2">Banda actual</div><div class="ba"><b>${h(bn)}</b><span class="pill">Ficticia</span></div>
+    <div class="cm"><span>Compatibilidad <b>${c}</b></span><span>mínima ${x.compat_min}</span></div>
+    <div class="bw"><div class="barra2"><i style="width:${c}%;background:${c >= x.compat_min ? 'var(--v2)' : '#8d8296'}"></i></div><u style="left:${x.compat_min}%"></u></div>
+    <div class="est ${e}">${e === 'l' ? 'A tu alcance' : 'Te falta ' + mot}. Nivel mínimo ${x.nivel_min}.</div>`;
+  }
+  return `<section class="hc"><div class="hh"><h2>${h(x.nombre)}</h2><span class="pill p2">${h(x.categoria || '')}</span></div>${cuerpo}</section>`;
+}
+
+async function pContratos() {
+  const v = document.getElementById('vista');
+  if (!H) {
+    v.innerHTML = '<section><h2>Buscar contratos</h2><p class="nota">Cargando…</p></section>';
+    const {data, error} = await sb.from('hermandades').select('id,nombre,jornada,categoria,nivel_min,compat_min,silencio,pct_funebre,bandas_ficticias(nombre)').order('id');
+    if (error) return aviso(error.message);
+    H = data;
+  }
+  const p = perfil();
+  const est = x => x.silencio ? 's' : (B.nivel < x.nivel_min || compat(x, p) < x.compat_min ? 'b' : 'l');
+  const lista = H.filter(x => fil === 'todas' || est(x) === 'l');
+  v.innerHTML = `<section><h2>Buscar contratos</h2><div class="res"><div><span class="num">${H.filter(x => est(x) === 'l').length}</span><small>a tu alcance</small></div><div><span class="num">${H.filter(x => !x.silencio).length}</span><small>con banda</small></div></div>
+  <p class="nota">Solo puedes tocar con una hermandad por jornada. Las ofertas llegarán con la temporada.</p></section>
+  <div class="chips">${[['todas', 'Todas'], ['libres', 'A tu alcance']].map(([k, n]) => `<button class="seg ${fil === k ? 'on' : ''}" data-f="${k}" aria-pressed="${fil === k}">${n}</button>`).join('')}</div>
+  ${JORN.map(j => { const hs = lista.filter(x => x.jornada === j); return hs.length ? `<h2 class="jh">${j}</h2>` + hs.map(x => tarjeta(x, est(x), p)).join('') : ''; }).join('')}`;
+  v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { fil = b.dataset.f; pContratos(); });
 }
 
 async function pRanking() {
