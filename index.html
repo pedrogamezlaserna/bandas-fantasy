@@ -242,7 +242,8 @@ let H = null, fil = 'todas';
 const compat = (x, p) => Math.round(0.7 * (100 - Math.abs(p.pf - x.pct_funebre)) + 0.3 * (100 - Math.abs(p.pot - (100 - x.pct_funebre))));
 
 let E = {fase: 'ensayo'}, C = {}, O = {}, MYJ = new Set(), OFJ = new Set();
-const PAGO = c => ({'Fácil': P.pago_facil, 'Media': P.pago_media, 'Alta': P.pago_alta}[c] || P.pago_extrema);
+const horasDe = x => { if (!x.hora_salida || !x.hora_recogida) return P.horas_ref; const m = t => +t.slice(0, 2) * 60 + +t.slice(3, 5); let d = (m(x.hora_recogida) - m(x.hora_salida)) / 60; return d <= 0 ? d + 24 : d; };
+const pagoDe = (x, nivel) => Math.round(({'Fácil': P.pago_facil, 'Media': P.pago_media, 'Alta': P.pago_alta}[x.categoria] || P.pago_extrema) * horasDe(x) / P.horas_ref * (1 + P.nivel_pct / 100 * (Math.max(nivel, 1) - 1)) / 5) * 5;
 const maxC = n => n < 3 ? 3 : n < 5 ? 4 : n < 7 ? 5 : n < 9 ? 6 : n < 12 ? 7 : n < 15 ? 8 : n < 18 ? 9 : 10;
 
 function tarjeta(x, e, p) {
@@ -258,6 +259,7 @@ function tarjeta(x, e, p) {
     else if (e === 'l') acc = E.fase !== 'ensayo' ? '<div class="est">Las ofertas se presentan en el día de ensayo.</div>' : MYJ.has(x.jornada) ? '<div class="est">Ya tienes un contrato ese día.</div>' : OFJ.has(x.jornada) ? '<div class="est">Ya tienes otra oferta ese día.</div>' : `<button class="of" data-h="${x.id}">Presentar oferta</button>`;
     else acc = `<div class="est">Te falta ${mot}. Nivel mínimo ${x.nivel_min}.</div>`;
     cuerpo = `<div class="lbl2">Banda actual</div><div class="ba"><b>${h(bn)}</b><span class="pill" ${ct ? 'style="background:var(--oro2)"' : ''}>${ct ? 'Jugador' : 'Ficticia'}</span></div>
+    <div class="cm"><span>Pago por jornada <b>${eur(pagoDe(x, B.nivel))}</b></span><span>${Math.round(horasDe(x) * 10) / 10} h en la calle</span></div>
     <div class="cm"><span>Compatibilidad <b>${c}</b></span><span>mínima ${x.compat_min}</span></div>
     <div class="bw"><div class="barra2"><i style="width:${c}%;background:${c >= x.compat_min ? 'var(--v2)' : '#8d8296'}"></i></div><u style="left:${x.compat_min}%"></u></div>${acc}`;
   }
@@ -299,7 +301,7 @@ async function pContratos() {
   const v = document.getElementById('vista');
   if (!H) {
     v.innerHTML = '<section><h2>Buscar contratos</h2><p class="nota">Cargando…</p></section>';
-    const {data, error} = await sb.from('hermandades').select('id,nombre,jornada,categoria,nivel_min,compat_min,silencio,pct_funebre,dificultad,bandas_ficticias(nombre)').order('id');
+    const {data, error} = await sb.from('hermandades').select('id,nombre,jornada,categoria,nivel_min,compat_min,silencio,pct_funebre,dificultad,hora_salida,hora_recogida,bandas_ficticias(nombre)').order('id');
     if (error) return aviso(error.message);
     H = data;
   }
