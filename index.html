@@ -320,6 +320,8 @@ async function pContratos() {
   <button data-u="${i}" aria-label="Subir" ${i === 0 ? 'disabled' : ''} style="width:44px;height:44px;border:0;border-radius:12px;background:#efe6f7;color:#2a1238;font:700 18px inherit;margin-left:6px">▲</button>
   <button data-d="${i}" aria-label="Bajar" ${i === ofs.length - 1 ? 'disabled' : ''} style="width:44px;height:44px;border:0;border-radius:12px;background:#efe6f7;color:#2a1238;font:700 18px inherit;margin-left:6px">▼</button></div>`).join('')}</section>` : ''}
   <div class="chips">${[['todas', 'Todas'], ['libres', 'A tu alcance']].map(([k, n]) => `<button class="seg ${fil === k ? 'on' : ''}" data-f="${k}" aria-pressed="${fil === k}">${n}</button>`).join('')}</div>
+  <h2 class="jh">Contratos actuales</h2>
+  ${mios.length ? mios.slice().sort((x, y) => JORN.indexOf(x.jornada) - JORN.indexOf(y.jornada)).map(x => tarjeta(x, 'm', p)).join('') : '<section><p class="nota" style="margin:0">Todavía no tienes contratos. Presenta ofertas más abajo.</p></section>'}
   ${JORN.map(j => { const hs = lista.filter(x => x.jornada === j); return hs.length ? `<h2 class="jh">${j}</h2>` + hs.map(x => tarjeta(x, est(x), p)).join('') : ''; }).join('')}`;
   v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { fil = b.dataset.f; pContratos(); });
   v.querySelectorAll('[data-h]').forEach(b => b.onclick = () => modalOferta(H.find(x => x.id === +b.dataset.h)));
@@ -334,28 +336,55 @@ const DEC = {sale: 'Ha salido y no ha llovido', sale_moja: 'Ha salido y se ha mo
 const FASES = ['Salida', 'Recorrido', 'Carrera oficial', 'Recogida'];
 const filaEf = e => e > 0 ? `+${e}` : `${e}`;
 
-async function semanaLista() {
-  const el = document.getElementById('sj'); if (!el) return;
-  el.innerHTML = '<p class="nota">Cargando jornadas…</p>';
+async function semanaDatos() {
   const [rc, rt, ra] = await Promise.all([
     sb.from('contratos').select('hermandad_id,hermandades(nombre,jornada,hora_salida,hora_recogida)').eq('banda_id', B.id),
     sb.rpc('tiempo_semana'), sb.from('actuaciones').select('*').eq('banda_id', B.id).eq('temporada', E.temporada)]);
   const T = {}; (rt.data || []).forEach(x => T[x.jornada] = x.prevision);
   const A = {}; (ra.data || []).forEach(x => A[x.hermandad_id] = x);
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada));
-  if (!cs.length) { el.innerHTML = '<p class="nota" style="margin:0">No tienes contratos esta Semana Santa.</p>'; return; }
-  el.innerHTML = cs.map(c => { const a = A[c.hermandad_id], hm = c.hermandades;
-    return `<div class="fila"><div style="flex:1"><b style="display:block">${h(hm.nombre)}</b><small style="color:var(--gris)">${hm.jornada} · lluvia prevista ${T[hm.jornada] ?? '?'} %${a ? ' · cobrado ' + eur(a.ingresos) : ''}</small></div>
-    <button class="of2" data-j="${c.hermandad_id}" style="width:auto;padding:0 14px;margin:0">${a ? 'Ver crónica' : 'Salir a tocar'}</button></div>`; }).join('');
+  return {cs, T, A};
+}
+const pendiente = S => S.cs.find(c => !S.A[c.hermandad_id]);
+const sigDe = S => { const c = pendiente(S); return c ? {c, prev: S.T[c.hermandades.jornada]} : null; };
+const datosActuacion = (a, hm) => ({...a.detalle, decision: a.decision, llueve: a.llueve, prevision: a.prevision, refuerzos: a.refuerzos, ingresos: a.ingresos,
+  coste: a.coste, xp: a.xp, prestigio: a.prestigio, satisfaccion: a.satisfaccion, retraso: a.retraso, auto: a.auto, hermandad: hm.nombre, jornada: hm.jornada});
+
+async function semanaLista() {
+  const el = document.getElementById('sj'); if (!el) return;
+  el.innerHTML = '<p class="nota">Cargando jornadas…</p>';
+  const S = await semanaDatos(), sg = sigDe(S), hechas = S.cs.filter(c => S.A[c.hermandad_id]).length;
+  if (!S.cs.length) { el.innerHTML = '<p class="nota" style="margin:0">No tienes contratos esta Semana Santa.</p>'; return; }
+  el.innerHTML = S.cs.map(c => { const a = S.A[c.hermandad_id], hm = c.hermandades;
+    return `<div class="fila"><div style="flex:1"><b style="display:block">${h(hm.nombre)}</b><small style="color:var(--gris)">${hm.jornada} · ${a ? 'cobrado ' + eur(a.ingresos) : 'lluvia prevista ' + (S.T[hm.jornada] ?? '?') + ' %'}</small></div>
+    ${a ? `<button class="of2" data-j="${c.hermandad_id}" style="width:auto;padding:0 14px;margin:0">Ver crónica</button>` : '<span class="pill">Pendiente</span>'}</div>`; }).join('')
+    + (sg ? `<button class="fund" id="emp" style="margin-top:12px">${hechas ? 'Continuar la Semana Santa' : 'Empezar la Semana Santa'}</button>`
+      : `<button class="fund" id="res" style="margin-top:12px">Resumen de la Semana Santa</button>`);
   el.querySelectorAll('[data-j]').forEach(b => b.onclick = () => {
-    const c = cs.find(x => x.hermandad_id === +b.dataset.j), a = A[c.hermandad_id];
-    if (a) cronica({...a.detalle, decision: a.decision, llueve: a.llueve, prevision: a.prevision, refuerzos: a.refuerzos, ingresos: a.ingresos,
-      coste: a.coste, xp: a.xp, prestigio: a.prestigio, satisfaccion: a.satisfaccion, retraso: a.retraso, hermandad: c.hermandades.nombre, jornada: c.hermandades.jornada});
-    else previaJornada(c, T[c.hermandades.jornada]);
+    const c = S.cs.find(x => x.hermandad_id === +b.dataset.j); cronica(datosActuacion(S.A[c.hermandad_id], c.hermandades), sigDe(S));
   });
+  const e1 = document.getElementById('emp'); if (e1) e1.onclick = () => previaJornada(sg.c, sg.prev);
+  const e2 = document.getElementById('res'); if (e2) e2.onclick = () => resumen(S);
 }
 
-function previaJornada(c, prev) {
+function resumen(S) {
+  const f = S.cs.map(c => ({c, a: S.A[c.hermandad_id]})).filter(x => x.a);
+  const sum = k => f.reduce((t, x) => t + x.a[k], 0);
+  ov(`<h2>Resumen de la Semana Santa</h2>
+  <div class="avo">${f.map(({c, a}) => `<div style="padding:8px 0;border-top:1px solid #e4d8b8"><b>${h(c.hermandades.nombre)}</b> <small>· ${c.hermandades.jornada}</small><br>
+    <small>${eur(a.ingresos)}${a.coste ? ' · refuerzos −' + eur(a.coste) : ''} · +${a.xp} xp · prestigio ${a.prestigio > 0 ? '+' : ''}${a.prestigio}</small></div>`).join('')}</div>
+  <div class="avo"><b class="f" style="font-size:24px">Total</b>
+  <div class="fila2"><span>Ingresos</span><span>${eur(sum('ingresos'))}</span></div>
+  <div class="fila2"><span>Refuerzos</span><span>−${eur(sum('coste'))}</span></div>
+  <div class="fila2"><span>Experiencia</span><span>+${sum('xp')} xp</span></div>
+  <div class="fila2"><span>Prestigio</span><span>${sum('prestigio') > 0 ? '+' : ''}${sum('prestigio')}</span></div>
+  <p class="nota" style="margin-top:10px;color:#4a3a5a">Los gastos de la banda de la temporada se descuentan a las 00:00.</p></div>
+  <button class="b2" id="ok">Cerrar</button>`);
+  document.getElementById('ok').onclick = () => { document.getElementById('ov').remove(); init(); };
+}
+
+async function previaJornada(c, prev) {
+  const {data: bb} = await sb.from('bandas').select('dinero').eq('id', B.id).single(); if (bb) B.dinero = bb.dinero;
   const hm = c.hermandades; let n = 0;
   const hs = t => t ? String(t).slice(0, 5) : '—';
   const e = ov(`<h2>${h(hm.nombre)}</h2><p>${hm.jornada}</p>
@@ -365,18 +394,20 @@ function previaJornada(c, prev) {
   <p id="rc" style="margin-top:8px;text-align:center"></p></div>
   <button class="b2" id="go3">¡Que suene la banda!</button><button class="b3" id="no" style="text-align:center">Volver</button>`);
   const pintar = () => { document.getElementById('rn').textContent = n; document.getElementById('rc').textContent = n * P.refuerzo_precio + ' € de ' + eur(B.dinero); };
+  pintar();
   document.getElementById('rm').onclick = () => { n = Math.max(0, n - 1); pintar(); };
   document.getElementById('rp').onclick = () => { if (n < P.refuerzo_max && (n + 1) * P.refuerzo_precio <= B.dinero) n++; pintar(); };
-  document.getElementById('no').onclick = () => e.remove();
+  document.getElementById('no').onclick = () => { e.remove(); init(); };
   document.getElementById('go3').onclick = async () => {
     document.getElementById('go3').disabled = true;
     const {data, error} = await sb.rpc('jugar_jornada', {p_h: c.hermandad_id, p_ref: n});
     if (error) { e.remove(); return aviso(error.message); }
-    cronica(data);
+    const S = await semanaDatos();
+    cronica(data, sigDe(S), S);
   };
 }
 
-function cronica(d) {
+function cronica(d, sig, S) {
   const pag = [];
   if (d.decision === 'no_sale') pag.push('nosale');
   else FASES.forEach(f => { if ((d.tramos || []).some(t => t.momento === f)) pag.push(f); });
@@ -399,8 +430,17 @@ function cronica(d) {
       ${d.decision === 'refugia' ? '<div class="avo">La vuelta es mañana temprano desde la Catedral. No gasta acciones.</div>' : ''}`;
     else cuerpo = (d.tramos || []).filter(t => t.momento === pg).map(t => `<div class="avo"><small><b>${h(t.tramo)}</b></small><br>${h(t.texto)}<br><span class="pill" style="margin-top:6px;display:inline-block;background:${t.efecto > 0 ? '#e1f2e6' : t.efecto < 0 ? '#fbe9e7' : '#efe9f3'};color:${t.efecto > 0 ? '#1d6236' : t.efecto < 0 ? '#8a1c10' : '#4a2466'}">Satisfacción ${filaEf(t.efecto)}</span></div>`).join('');
     const tit = pg === 'fin' ? 'Jornada completada' : pg === 'nosale' ? 'No sale' : pg;
-    ov(`<h2>${tit}</h2><p>${h(d.hermandad)} · ${d.jornada}</p>${cuerpo}<button class="b2" id="sig">${ultimo ? 'Cerrar' : 'Siguiente'}</button>`);
-    document.getElementById('sig').onclick = () => { if (ultimo) { document.getElementById('ov').remove(); init(); } else { i++; pintar(); } };
+    const botones = !ultimo ? '<button class="b2" id="sig">Siguiente</button>'
+      : (sig ? `<button class="b2" id="nx">Siguiente contrato (${h(sig.c.hermandades.nombre)} - ${sig.c.hermandades.jornada})</button>`
+             : '<button class="b2" id="rs">Resumen de la Semana Santa</button>') + '<button class="b3" id="cl2" style="text-align:center">Cerrar</button>';
+    ov(`<h2>${tit}</h2><p>${h(d.hermandad)} · ${d.jornada}</p>${cuerpo}${botones}`);
+    const cerrar = () => { document.getElementById('ov').remove(); init(); };
+    if (!ultimo) document.getElementById('sig').onclick = () => { i++; pintar(); };
+    else {
+      document.getElementById('cl2').onclick = cerrar;
+      if (sig) document.getElementById('nx').onclick = () => previaJornada(sig.c, sig.prev);
+      else document.getElementById('rs').onclick = async () => resumen(S || await semanaDatos());
+    }
   };
   pintar();
 }
