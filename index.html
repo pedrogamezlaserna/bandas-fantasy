@@ -71,6 +71,12 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .beat.on{background:var(--oro);transform:scale(1.08)}
 .ov .b2{background:var(--oro);color:var(--v);width:100%;max-width:380px;height:56px;font-size:18px}
 .ov .b3{background:rgba(255,255,255,.14);color:#fff;width:100%;max-width:420px;height:auto;min-height:56px;padding:12px 14px;text-align:left}
+.of{width:100%;margin-top:12px;height:48px;background:var(--oro);color:var(--v)}
+.of2{width:100%;margin-top:8px;background:#efe6f7;color:var(--v)}
+.ov .avo{background:#f6efd9;color:var(--tinta);border:2px solid var(--oro);border-radius:14px;padding:14px;max-width:420px;text-align:left}
+.ov .opt{display:flex;align-items:center;gap:12px;cursor:pointer;margin:0;font-size:16px}
+.ov .opt input{width:24px;height:24px;padding:0;margin:0;flex:none;accent-color:var(--oro)}
+.ov .opt span:first-of-type{flex:1}.ov .opt .pill{flex:none;background:var(--oro2);color:var(--v)}
 </style>
 </head>
 <body>
@@ -128,6 +134,7 @@ async function init() {
   const {data: ps, error: e1} = await sb.from('parametros').select('*');
   if (e1) { app.innerHTML = '<main><section><h2>No se pudo cargar el juego</h2><p class="nota">' + h(e1.message) + '</p></section></main>'; return; }
   P = {}; ps.forEach(x => P[x.clave] = Number(x.valor));
+  const {data: est} = await sb.rpc('sincronizar'); E = est || E;
   await sb.rpc('refrescar_dia');
   const {data: b} = await sb.from('bandas').select('*, repertorio(marchas(estilo))').eq('id', session.user.id).maybeSingle();
   B = b;
@@ -189,22 +196,30 @@ function vistaApp() {
   ({inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking})[tab]();
 }
 
-function pInicio() {
-  const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1);
+async function pInicio() {
+  const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana';
   const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
   document.getElementById('vista').innerHTML = `
-  <section><h2>Día de ensayo</h2><div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
+  <section>${sem ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. A las 00:00 se resolverán tus contratos: cobrarás, ganarás experiencia y se actualizarán los contratos. La crónica jornada a jornada llegará pronto.</p>`
+  : `<h2>Día de ensayo</h2><div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
   <div class="dots" aria-hidden="true">${Array.from({length: P.acciones_dia}, (_, i) => `<i class="${i < a ? '' : 'off'}"></i>`).join('')}</div>
-  <button id="ens" class="fund" style="margin-top:10px" ${a < 1 ? 'disabled' : ''}>Ensayar (1 acción)</button>
+  <button id="ens" class="fund" style="margin-top:10px" ${a < 1 ? 'disabled' : ''}>Ensayar (1 acción)</button>`}
   <div class="fila2"><span>Nivel ${B.nivel}</span><span>${B.experiencia} xp</span></div><div class="xp"><i style="width:${prog}%"></i></div>
-  <p class="nota">${B.nivel >= 20 ? 'Nivel máximo.' : 'Siguiente nivel: ' + sig + ' xp.'} Las acciones se renuevan a las 00:00.</p></section>
+  <p class="nota">${B.nivel >= 20 ? 'Nivel máximo.' : 'Siguiente nivel: ' + sig + ' xp.'} Cierre del día a las 00:00.</p></section>
+  <section id="ct"><h2>Tus contratos</h2></section>
   <section><h2>Plantilla</h2><p style="margin:0 0 4px;color:var(--gris);font-size:14px">${tot(B)} músicos con ${tot(B)} uniformes</p>
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n}</b><span class="num">${B[k]}</span></div>`).join('')}</section>
   <section><h2>Estilo de la banda</h2><div class="barra"><i style="width:${p.pf}%"></i></div>
   <div class="fila2"><span>Fúnebre ${p.pf} %</span><span>Alegre ${100 - p.pf} %</span></div>
   <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>
-  <section><h2>Noticias</h2><p class="nota" style="margin:0">Todavía no hay noticias. Cuando abra la temporada verás aquí los contratos, el parte del tiempo y la crónica de cada jornada.</p></section>`;
-  document.getElementById('ens').onclick = ensayar;
+  <section id="nt"><h2>Noticias</h2></section>`;
+  if (!sem) document.getElementById('ens').onclick = ensayar;
+  const [rc, rn] = await Promise.all([sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', B.id), sb.from('noticias').select('texto').order('id', {ascending: false}).limit(8)]);
+  const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada)), ns = rn.data || [];
+  const ect = document.getElementById('ct'), ent = document.getElementById('nt');
+  if (!ect || !ent) return;
+  ect.innerHTML = '<h2>Tus contratos</h2>' + (cs.length ? cs.map(c => `<div class="fila"><div style="flex:1"><b style="display:block">${h(c.hermandades.nombre)}</b><small style="color:var(--gris)">${c.hermandades.jornada}</small></div><span class="pill p2">${c.anios} ${c.anios === 1 ? 'año' : 'años'}</span></div>`).join('') : '<p class="nota" style="margin:0">Todavía no tienes contratos. Presenta ofertas en la pestaña Contratos.</p>');
+  ent.innerHTML = '<h2>Noticias</h2>' + (ns.length ? ns.map(n => `<div class="fila"><span style="font-size:14px;line-height:1.4">${h(n.texto)}</span></div>`).join('') : '<p class="nota" style="margin:0">Todavía no hay noticias. Aquí verás los contratos, las renovaciones y todo lo que pase en la temporada.</p>');
 }
 
 function pTienda() {
@@ -212,7 +227,7 @@ function pTienda() {
   const mx = P.plantilla_base + P.plantilla_nivel * (B.nivel - 1), n0 = tot(B);
   v.innerHTML = `<section><h2>Músicos</h2><p class="nota" style="margin:0">Cada músico cuesta ${eur(pr)} con su uniforme. Cada compra gasta 1 acción (te quedan ${B.acciones}).</p>
   <p class="nota" style="margin:4px 0 4px">Plantilla: ${n0} de ${mx} (máximo de tu nivel).</p>
-  ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${B.acciones < 1 || B.dinero < pr * c || n0 + c > mx || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
+  ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${E.fase !== 'ensayo' || B.acciones < 1 || B.dinero < pr * c || n0 + c > mx || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
   <section><h2>Próximamente</h2><p class="nota" style="margin:0">El montaje de marchas, el banderín, el diseño del uniforme y el disco llegarán con la temporada.</p></section>`;
   v.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
     const {error} = await sb.rpc('comprar_musicos', {p_seccion: b.dataset.k, p_cantidad: +b.dataset.c});
@@ -225,18 +240,50 @@ const JORN = ['Vísperas', 'Domingo de Ramos', 'Lunes Santo', 'Martes Santo', 'M
 let H = null, fil = 'todas';
 const compat = (x, p) => Math.round(0.7 * (100 - Math.abs(p.pf - x.pct_funebre)) + 0.3 * (100 - Math.abs(p.pot - (100 - x.pct_funebre))));
 
+let E = {fase: 'ensayo'}, C = {}, O = {}, MYJ = new Set(), OFJ = new Set();
+const PAGO = c => ({'Fácil': P.pago_facil, 'Media': P.pago_media, 'Alta': P.pago_alta}[c] || P.pago_extrema);
+const maxC = n => n < 3 ? 3 : n < 5 ? 4 : n < 7 ? 5 : n < 9 ? 6 : n < 12 ? 7 : n < 15 ? 8 : n < 18 ? 9 : 10;
+
 function tarjeta(x, e, p) {
-  const c = compat(x, p), bn = x.bandas_ficticias ? x.bandas_ficticias.nombre : 'Sin banda';
+  const c = compat(x, p), ct = C[x.id], of = O[x.id];
+  const bn = ct ? ct.bandas.nombre : (x.bandas_ficticias ? x.bandas_ficticias.nombre : 'Sin banda');
   let cuerpo;
   if (e === 's') cuerpo = '<div class="est">Sin banda de música. Va en silencio: solo un cabildo extraordinario podría contratar una.</div>';
   else {
     const mot = [B.nivel < x.nivel_min ? 'nivel' : '', c < x.compat_min ? 'compatibilidad' : ''].filter(Boolean).join(' y ');
-    cuerpo = `<div class="lbl2">Banda actual</div><div class="ba"><b>${h(bn)}</b><span class="pill">Ficticia</span></div>
+    let acc;
+    if (e === 'm') acc = `<div class="est l">Contrato tuyo. Quedan ${ct.anios} ${ct.anios === 1 ? 'año' : 'años'}.</div>`;
+    else if (e === 'o') acc = `<div class="est l">Oferta presentada: se resuelve a las 00:00.</div><button class="of2" data-r="${of.id}">Retirar oferta</button>`;
+    else if (e === 'l') acc = E.fase !== 'ensayo' ? '<div class="est">Las ofertas se presentan en el día de ensayo.</div>' : MYJ.has(x.jornada) ? '<div class="est">Ya tienes un contrato ese día.</div>' : OFJ.has(x.jornada) ? '<div class="est">Ya tienes otra oferta ese día.</div>' : `<button class="of" data-h="${x.id}">Presentar oferta</button>`;
+    else acc = `<div class="est">Te falta ${mot}. Nivel mínimo ${x.nivel_min}.</div>`;
+    cuerpo = `<div class="lbl2">Banda actual</div><div class="ba"><b>${h(bn)}</b><span class="pill" ${ct ? 'style="background:var(--oro2)"' : ''}>${ct ? 'Jugador' : 'Ficticia'}</span></div>
     <div class="cm"><span>Compatibilidad <b>${c}</b></span><span>mínima ${x.compat_min}</span></div>
-    <div class="bw"><div class="barra2"><i style="width:${c}%;background:${c >= x.compat_min ? 'var(--v2)' : '#8d8296'}"></i></div><u style="left:${x.compat_min}%"></u></div>
-    <div class="est ${e}">${e === 'l' ? 'A tu alcance' : 'Te falta ' + mot}. Nivel mínimo ${x.nivel_min}.</div>`;
+    <div class="bw"><div class="barra2"><i style="width:${c}%;background:${c >= x.compat_min ? 'var(--v2)' : '#8d8296'}"></i></div><u style="left:${x.compat_min}%"></u></div>${acc}`;
   }
   return `<section class="hc"><div class="hh"><h2>${h(x.nombre)}</h2><span class="pill p2">${h(x.categoria || '')}</span></div>${cuerpo}</section>`;
+}
+
+function modalOferta(x) {
+  const pg = PAGO(x.categoria), ps = Math.round(pg * P.saya_pct / 100), pr = Math.round(pg * P.regalo_pct / 100);
+  const OP = [['saya', 'Saya para la Virgen', 'Donativo de ' + eur(ps), 12, 10, ps], ['rebaja', 'Rebajar el contrato', P.rebaja_pct + ' % menos de pago', 8, 12, 0], ['regalo', 'Regalo a la hermandad', eur(pr) + ' en enseres', 4, 8, pr]];
+  const e = ov(`<h2>${h(x.nombre)}</h2>
+  <div class="avo"><b class="f" style="font-size:24px">Solo pagas si ganas</b><br>Si la hermandad elige a otra banda, no se te cobra nada. El dinero queda comprometido, no gastado, hasta el cierre de las 00:00.</div>
+  ${OP.map(([k, t, d, pt]) => `<label class="b3 opt"><input type="checkbox" data-o="${k}"><span><b>${t}</b><br><small>${d}</small></span><span class="pill">+${pt}</span></label>`).join('')}
+  <p id="rs"></p><button class="b2" id="go2">Presentar oferta</button><button class="b3" id="no" style="text-align:center">Cancelar</button>`);
+  const f = k => e.querySelector(`[data-o="${k}"]`).checked;
+  const calc = () => {
+    const s = OP.filter(o => f(o[0])), co = s.reduce((a, o) => a + o[5], 0), ri = s.reduce((a, o) => a + o[4], 0), pu = s.reduce((a, o) => a + o[3], 0);
+    document.getElementById('rs').innerHTML = `Puntos extra: +${pu}. Riesgo de polémica: ${ri} %.<br>Dinero comprometido: ${eur(co)} de ${eur(B.dinero)}.`;
+    document.getElementById('go2').disabled = co > B.dinero;
+  };
+  e.querySelectorAll('[data-o]').forEach(i => i.onchange = calc); calc();
+  document.getElementById('no').onclick = () => e.remove();
+  document.getElementById('go2').onclick = async () => {
+    const {error} = await sb.rpc('presentar_oferta', {p_h: x.id, p_saya: f('saya'), p_rebaja: f('rebaja'), p_regalo: f('regalo')});
+    e.remove();
+    if (error) return aviso(error.message);
+    pContratos();
+  };
 }
 
 async function pContratos() {
@@ -247,14 +294,21 @@ async function pContratos() {
     if (error) return aviso(error.message);
     H = data;
   }
+  const [rc, ro] = await Promise.all([sb.from('contratos').select('hermandad_id,banda_id,anios,bandas(nombre)'), sb.from('ofertas').select('id,hermandad_id')]);
+  C = {}; (rc.data || []).forEach(c => C[c.hermandad_id] = c);
+  O = {}; (ro.data || []).forEach(o => O[o.hermandad_id] = o);
+  const mios = H.filter(x => C[x.id] && C[x.id].banda_id === B.id);
+  MYJ = new Set(mios.map(x => x.jornada)); OFJ = new Set(H.filter(x => O[x.id]).map(x => x.jornada));
   const p = perfil();
-  const est = x => x.silencio ? 's' : (B.nivel < x.nivel_min || compat(x, p) < x.compat_min ? 'b' : 'l');
-  const lista = H.filter(x => fil === 'todas' || est(x) === 'l');
-  v.innerHTML = `<section><h2>Buscar contratos</h2><div class="res"><div><span class="num">${H.filter(x => est(x) === 'l').length}</span><small>a tu alcance</small></div><div><span class="num">${H.filter(x => !x.silencio).length}</span><small>con banda</small></div></div>
-  <p class="nota">Solo puedes tocar con una hermandad por jornada. Las ofertas llegarán con la temporada.</p></section>
+  const est = x => x.silencio ? 's' : C[x.id] && C[x.id].banda_id === B.id ? 'm' : B.nivel < x.nivel_min || compat(x, p) < x.compat_min ? 'b' : O[x.id] ? 'o' : 'l';
+  const lista = H.filter(x => fil === 'todas' || est(x) === 'l' || est(x) === 'o');
+  v.innerHTML = `<section><h2>Buscar contratos</h2><div class="res"><div><span class="num">${mios.length} de ${maxC(B.nivel)}</span><small>contratos</small></div><div><span class="num">${Object.keys(O).length} de ${P.max_ofertas}</span><small>ofertas</small></div></div>
+  <p class="nota">Solo puedes tocar con una hermandad por jornada. Las ofertas se presentan en el día de ensayo y se resuelven a las 00:00.</p></section>
   <div class="chips">${[['todas', 'Todas'], ['libres', 'A tu alcance']].map(([k, n]) => `<button class="seg ${fil === k ? 'on' : ''}" data-f="${k}" aria-pressed="${fil === k}">${n}</button>`).join('')}</div>
   ${JORN.map(j => { const hs = lista.filter(x => x.jornada === j); return hs.length ? `<h2 class="jh">${j}</h2>` + hs.map(x => tarjeta(x, est(x), p)).join('') : ''; }).join('')}`;
   v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { fil = b.dataset.f; pContratos(); });
+  v.querySelectorAll('[data-h]').forEach(b => b.onclick = () => modalOferta(H.find(x => x.id === +b.dataset.h)));
+  v.querySelectorAll('[data-r]').forEach(b => b.onclick = async () => { await sb.from('ofertas').delete().eq('id', +b.dataset.r); pContratos(); });
 }
 
 let IMP = null;
@@ -263,6 +317,7 @@ const ov = html => { let e = document.getElementById('ov'); if (!e) { e = docume
 const fin = (titulo, msg) => { ov(`<h2>${titulo}</h2><p>${msg}</p><button class="b2" id="ok">Continuar</button>`); document.getElementById('ok').onclick = () => { document.getElementById('ov').remove(); init(); }; };
 
 async function ensayar() {
+  if (E.fase !== 'ensayo') return aviso('Hoy es día de Semana Santa.');
   if (B.acciones < 1) return aviso('No te quedan acciones hoy.');
   if (!IMP) { const {data} = await sb.from('imprevistos').select('*').order('id'); IMP = data || []; }
   IMP.length && Math.random() < 0.35 ? imprevisto(IMP[Math.floor(Math.random() * IMP.length)]) : pulso();
