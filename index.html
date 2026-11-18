@@ -302,20 +302,29 @@ async function pContratos() {
     if (error) return aviso(error.message);
     H = data;
   }
-  const [rc, ro] = await Promise.all([sb.from('contratos').select('hermandad_id,banda_id,anios,bandas(nombre)'), sb.from('ofertas').select('id,hermandad_id')]);
+  const [rc, ro] = await Promise.all([sb.from('contratos').select('hermandad_id,banda_id,anios,bandas(nombre)'), sb.from('ofertas').select('id,hermandad_id,prioridad')]);
   C = {}; (rc.data || []).forEach(c => C[c.hermandad_id] = c);
   O = {}; (ro.data || []).forEach(o => O[o.hermandad_id] = o);
   const mios = H.filter(x => C[x.id] && C[x.id].banda_id === B.id);
   MYJ = new Set(mios.map(x => x.jornada)); OFJ = new Set(H.filter(x => O[x.id]).map(x => x.jornada));
+  const ofs = Object.values(O).sort((a, b) => a.prioridad - b.prioridad), libres = Math.max(0, maxC(B.nivel) - mios.length);
   const p = perfil();
   const est = x => x.silencio ? 's' : C[x.id] && C[x.id].banda_id === B.id ? 'm' : B.nivel < x.nivel_min || compat(x, p) < x.compat_min ? 'b' : O[x.id] ? 'o' : 'l';
   const lista = H.filter(x => fil === 'todas' || est(x) === 'l' || est(x) === 'o');
   v.innerHTML = `<section><h2>Buscar contratos</h2><div class="res"><div><span class="num">${mios.length} de ${maxC(B.nivel)}</span><small>contratos</small></div><div><span class="num">${Object.keys(O).length} de ${P.max_ofertas}</span><small>ofertas</small></div></div>
   <p class="nota">Solo puedes tocar con una hermandad por jornada. Las ofertas se presentan en el día de ensayo y se resuelven a las 00:00.</p></section>
+  ${ofs.length ? `<section><h2>Tus ofertas por orden de preferencia</h2>
+  <p class="nota">Se resuelven de la primera a la última. ${libres < ofs.length ? `<b>Solo te caben ${libres} contrato${libres === 1 ? '' : 's'} más: si ganas más, se descartan las últimas de tu lista.</b>` : `Te caben ${libres} contrato${libres === 1 ? '' : 's'} más.`}</p>
+  ${ofs.map((o, i) => `<div class="fila"><span class="pill ${i < libres ? 'p2' : ''}" style="min-width:26px;text-align:center">${i + 1}</span><div style="flex:1"><b style="display:block">${h(H.find(x => x.id === o.hermandad_id).nombre)}</b><small style="color:var(--gris)">${H.find(x => x.id === o.hermandad_id).jornada}${i >= libres ? ' · no cabe' : ''}</small></div>
+  <button data-u="${i}" aria-label="Subir" ${i === 0 ? 'disabled' : ''} style="width:44px;height:44px;border:0;border-radius:12px;background:#efe6f7;color:#2a1238;font:700 18px inherit;margin-left:6px">▲</button>
+  <button data-d="${i}" aria-label="Bajar" ${i === ofs.length - 1 ? 'disabled' : ''} style="width:44px;height:44px;border:0;border-radius:12px;background:#efe6f7;color:#2a1238;font:700 18px inherit;margin-left:6px">▼</button></div>`).join('')}</section>` : ''}
   <div class="chips">${[['todas', 'Todas'], ['libres', 'A tu alcance']].map(([k, n]) => `<button class="seg ${fil === k ? 'on' : ''}" data-f="${k}" aria-pressed="${fil === k}">${n}</button>`).join('')}</div>
   ${JORN.map(j => { const hs = lista.filter(x => x.jornada === j); return hs.length ? `<h2 class="jh">${j}</h2>` + hs.map(x => tarjeta(x, est(x), p)).join('') : ''; }).join('')}`;
   v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { fil = b.dataset.f; pContratos(); });
   v.querySelectorAll('[data-h]').forEach(b => b.onclick = () => modalOferta(H.find(x => x.id === +b.dataset.h)));
+  const mover = async (i, d) => { const ids = ofs.map(o => o.id); [ids[i], ids[i + d]] = [ids[i + d], ids[i]]; const {error} = await sb.rpc('ordenar_ofertas', {p_ids: ids}); if (error) aviso(error.message); pContratos(); };
+  v.querySelectorAll('[data-u]').forEach(b => b.onclick = () => mover(+b.dataset.u, -1));
+  v.querySelectorAll('[data-d]').forEach(b => b.onclick = () => mover(+b.dataset.d, 1));
   v.querySelectorAll('[data-r]').forEach(b => b.onclick = async () => { await sb.from('ofertas').delete().eq('id', +b.dataset.r); pContratos(); });
 }
 
