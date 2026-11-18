@@ -200,7 +200,7 @@ async function pInicio() {
   const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana';
   const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
   document.getElementById('vista').innerHTML = `
-  <section>${sem ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. A las 00:00 se resolverán tus contratos: cobrarás, ganarás experiencia y se actualizarán los contratos. La crónica jornada a jornada llegará pronto.</p>`
+  <section>${sem ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. Toca cada jornada cuando quieras. A las 00:00, las que no hayas tocado se resolverán solas y cobrarás solo la mitad de dinero y de experiencia.</p><div id="sj"></div>`
   : `<h2>Día de ensayo</h2><div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
   <div class="dots" aria-hidden="true">${Array.from({length: P.acciones_dia}, (_, i) => `<i class="${i < a ? '' : 'off'}"></i>`).join('')}</div>
   <button id="ens" class="fund" style="margin-top:10px" ${a < 1 ? 'disabled' : ''}>Ensayar (1 acción)</button>`}
@@ -214,6 +214,7 @@ async function pInicio() {
   <div class="fila2"><span>Fúnebre ${p.pf} %</span><span>Alegre ${100 - p.pf} %</span></div>
   <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>`;
   if (!sem) document.getElementById('ens').onclick = ensayar;
+  if (sem) semanaLista();
   const [rc, rn] = await Promise.all([sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', B.id), sb.from('noticias').select('texto').order('id', {ascending: false}).limit(8)]);
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada)), ns = rn.data || [];
   const ect = document.getElementById('ct'), ent = document.getElementById('nt');
@@ -326,6 +327,82 @@ async function pContratos() {
   v.querySelectorAll('[data-u]').forEach(b => b.onclick = () => mover(+b.dataset.u, -1));
   v.querySelectorAll('[data-d]').forEach(b => b.onclick = () => mover(+b.dataset.d, 1));
   v.querySelectorAll('[data-r]').forEach(b => b.onclick = async () => { await sb.from('ofertas').delete().eq('id', +b.dataset.r); pContratos(); });
+}
+
+const DEC = {sale: 'Ha salido y no ha llovido', sale_moja: 'Ha salido y se ha mojado', se_recoge: 'Se ha recogido antes de tiempo',
+  refugia: 'Se ha refugiado en la Catedral y vuelve mañana temprano', no_sale: 'No ha salido'};
+const FASES = ['Salida', 'Recorrido', 'Carrera oficial', 'Recogida'];
+const filaEf = e => e > 0 ? `+${e}` : `${e}`;
+
+async function semanaLista() {
+  const el = document.getElementById('sj'); if (!el) return;
+  el.innerHTML = '<p class="nota">Cargando jornadas…</p>';
+  const [rc, rt, ra] = await Promise.all([
+    sb.from('contratos').select('hermandad_id,hermandades(nombre,jornada,hora_salida,hora_recogida)').eq('banda_id', B.id),
+    sb.rpc('tiempo_semana'), sb.from('actuaciones').select('*').eq('banda_id', B.id).eq('temporada', E.temporada)]);
+  const T = {}; (rt.data || []).forEach(x => T[x.jornada] = x.prevision);
+  const A = {}; (ra.data || []).forEach(x => A[x.hermandad_id] = x);
+  const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada));
+  if (!cs.length) { el.innerHTML = '<p class="nota" style="margin:0">No tienes contratos esta Semana Santa.</p>'; return; }
+  el.innerHTML = cs.map(c => { const a = A[c.hermandad_id], hm = c.hermandades;
+    return `<div class="fila"><div style="flex:1"><b style="display:block">${h(hm.nombre)}</b><small style="color:var(--gris)">${hm.jornada} · lluvia prevista ${T[hm.jornada] ?? '?'} %${a ? ' · cobrado ' + eur(a.ingresos) : ''}</small></div>
+    <button class="of2" data-j="${c.hermandad_id}" style="width:auto;padding:0 14px;margin:0">${a ? 'Ver crónica' : 'Salir a tocar'}</button></div>`; }).join('');
+  el.querySelectorAll('[data-j]').forEach(b => b.onclick = () => {
+    const c = cs.find(x => x.hermandad_id === +b.dataset.j), a = A[c.hermandad_id];
+    if (a) cronica({...a.detalle, decision: a.decision, llueve: a.llueve, prevision: a.prevision, refuerzos: a.refuerzos, ingresos: a.ingresos,
+      coste: a.coste, xp: a.xp, prestigio: a.prestigio, satisfaccion: a.satisfaccion, retraso: a.retraso, hermandad: c.hermandades.nombre, jornada: c.hermandades.jornada});
+    else previaJornada(c, T[c.hermandades.jornada]);
+  });
+}
+
+function previaJornada(c, prev) {
+  const hm = c.hermandades; let n = 0;
+  const hs = t => t ? String(t).slice(0, 5) : '—';
+  const e = ov(`<h2>${h(hm.nombre)}</h2><p>${hm.jornada}</p>
+  <div class="avo"><b class="f" style="font-size:24px">Previsión de lluvia: ${prev} %</b><br>La hermandad decide si sale según el cielo. Si llueve, llueve para toda la ciudad.<br><small>Salida oficial ${hs(hm.hora_salida)} · Recogida oficial ${hs(hm.hora_recogida)}</small></div>
+  <div class="avo"><b>Refuerzos de última hora</b><br><small>${P.refuerzo_precio} € por músico. Ayudan a que suene mejor.</small>
+  <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:10px"><button class="b3" id="rm" style="width:56px;text-align:center;padding:0">−</button><b class="f" style="font-size:32px" id="rn">0</b><button class="b3" id="rp" style="width:56px;text-align:center;padding:0">+</button></div>
+  <p id="rc" style="margin-top:8px;text-align:center"></p></div>
+  <button class="b2" id="go3">¡Que suene la banda!</button><button class="b3" id="no" style="text-align:center">Volver</button>`);
+  const pintar = () => { document.getElementById('rn').textContent = n; document.getElementById('rc').textContent = n * P.refuerzo_precio + ' € de ' + eur(B.dinero); };
+  document.getElementById('rm').onclick = () => { n = Math.max(0, n - 1); pintar(); };
+  document.getElementById('rp').onclick = () => { if (n < P.refuerzo_max && (n + 1) * P.refuerzo_precio <= B.dinero) n++; pintar(); };
+  document.getElementById('no').onclick = () => e.remove();
+  document.getElementById('go3').onclick = async () => {
+    document.getElementById('go3').disabled = true;
+    const {data, error} = await sb.rpc('jugar_jornada', {p_h: c.hermandad_id, p_ref: n});
+    if (error) { e.remove(); return aviso(error.message); }
+    cronica(data);
+  };
+}
+
+function cronica(d) {
+  const pag = [];
+  if (d.decision === 'no_sale') pag.push('nosale');
+  else FASES.forEach(f => { if ((d.tramos || []).some(t => t.momento === f)) pag.push(f); });
+  pag.push('fin');
+  let i = 0;
+  const hs = t => t || '—';
+  const pintar = () => {
+    const pg = pag[i], ultimo = i === pag.length - 1;
+    let cuerpo;
+    if (pg === 'nosale') cuerpo = `<div class="avo"><b class="f" style="font-size:24px">${d.llueve ? 'Hoy ha llovido en toda la ciudad' : 'No ha llovido, pero la hermandad no ha salido'}</b><br>La previsión era del ${d.prevision} % y la Junta ha decidido no arriesgar.</div>
+      ${(d.otras || []).length ? `<div class="avo"><b>Qué han decidido las demás</b>${d.otras.slice(0, 8).map(o => `<div class="fila2"><span>${h(o.hermandad)}</span><span>${DEC[o.decision] || o.decision}</span></div>`).join('')}</div>` : ''}`;
+    else if (pg === 'fin') cuerpo = `<div class="avo"><b class="f" style="font-size:24px">${DEC[d.decision]}</b>
+      <div class="fila2"><span>Cobrado</span><span>${eur(d.ingresos)}</span></div>
+      ${d.coste ? `<div class="fila2"><span>Refuerzos</span><span>−${eur(d.coste)}</span></div>` : ''}
+      <div class="fila2"><span>Experiencia</span><span>+${d.xp} xp</span></div>
+      <div class="fila2"><span>Prestigio</span><span>${d.prestigio > 0 ? '+' : ''}${d.prestigio}</span></div>
+      ${d.decision !== 'no_sale' && !d.auto ? `<div class="fila2"><span>Satisfacción de la hermandad</span><span>${d.satisfaccion} %</span></div>
+      <div class="fila2"><span>Recogida</span><span>${hs(d.hora_recogida)} (oficial ${hs(d.hora_recogida_oficial)})</span></div>` : ''}
+      ${d.auto ? '<p class="nota" style="color:#4a3a5a">Esta jornada se resolvió sola porque no te conectaste: cobraste la mitad.</p>' : ''}</div>
+      ${d.decision === 'refugia' ? '<div class="avo">La vuelta es mañana temprano desde la Catedral. No gasta acciones.</div>' : ''}`;
+    else cuerpo = (d.tramos || []).filter(t => t.momento === pg).map(t => `<div class="avo"><small><b>${h(t.tramo)}</b></small><br>${h(t.texto)}<br><span class="pill" style="margin-top:6px;display:inline-block;background:${t.efecto > 0 ? '#e1f2e6' : t.efecto < 0 ? '#fbe9e7' : '#efe9f3'};color:${t.efecto > 0 ? '#1d6236' : t.efecto < 0 ? '#8a1c10' : '#4a2466'}">Satisfacción ${filaEf(t.efecto)}</span></div>`).join('');
+    const tit = pg === 'fin' ? 'Jornada completada' : pg === 'nosale' ? 'No sale' : pg;
+    ov(`<h2>${tit}</h2><p>${h(d.hermandad)} · ${d.jornada}</p>${cuerpo}<button class="b2" id="sig">${ultimo ? 'Cerrar' : 'Siguiente'}</button>`);
+    document.getElementById('sig').onclick = () => { if (ultimo) { document.getElementById('ov').remove(); init(); } else { i++; pintar(); } };
+  };
+  pintar();
 }
 
 let IMP = null;
