@@ -77,6 +77,15 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .ov .opt{display:flex;align-items:center;gap:12px;cursor:pointer;margin:0;font-size:16px}
 .ov .opt input{width:24px;height:24px;padding:0;margin:0;flex:none;accent-color:var(--oro)}
 .ov .opt span:first-of-type{flex:1}.ov .opt .pill{flex:none;background:var(--oro2);color:var(--v)}
+.sws{display:flex;flex-wrap:wrap;gap:10px}.sw{width:44px;height:44px;border-radius:50%;padding:0;min-height:0;border:3px solid #fff;box-shadow:0 0 0 1px #cfc4d8}.sw.on{box-shadow:0 0 0 3px var(--v)}
+.mods{display:flex;gap:8px}.md{flex:1;background:#fff;color:var(--v);border:2px solid var(--lin);padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;height:auto}.md.on{border-color:var(--v);background:#efe6f7}
+.uni{display:block;margin:0 auto}
+.bt .seg{flex:1;text-align:center}
+.tabs3{display:flex;gap:6px;margin-top:14px}.tabs3 button{flex:1;background:#fff;color:var(--gris);font-size:13px}.tabs3 button.on{background:var(--v);color:var(--oro2)}
+.barra-fija{position:sticky;bottom:calc(84px + env(safe-area-inset-bottom));padding-top:8px}
+.mini{min-width:44px;background:var(--oro2);color:var(--v);font-size:13px;padding:0 12px}.mini.sel{background:var(--v);color:var(--oro2)}.mini.off{background:var(--lin);color:var(--gris)}
+.hq{background:none;color:inherit;display:flex;align-items:center;gap:14px;padding:0;text-align:left;min-height:0;flex:1;min-width:0}.hq div{min-width:0}
+.rank li[data-id]{cursor:pointer}
 </style>
 </head>
 <body>
@@ -136,7 +145,7 @@ async function init() {
   P = {}; ps.forEach(x => P[x.clave] = Number(x.valor));
   const {data: est} = await sb.rpc('sincronizar'); E = est || E;
   await sb.rpc('refrescar_dia');
-  const {data: b} = await sb.from('bandas').select('*, repertorio(marchas(estilo))').eq('id', session.user.id).maybeSingle();
+  const {data: b} = await sb.from('bandas').select('*, repertorio(marcha_id, marchas(estilo,propia_de))').eq('id', session.user.id).maybeSingle();
   B = b;
   b ? vistaApp() : vistaCrear();
 }
@@ -187,13 +196,15 @@ function perfil() {
 }
 
 function vistaApp() {
-  app.innerHTML = `<header class="top">${escudo(B.escudo, 52)}<div><h1>${h(B.nombre)}</h1><small>${h(B.usuario)}</small></div>
+  app.innerHTML = `<header class="top"><button class="hq" id="hq" aria-label="Mi banda">${escudo(B.escudo, 52)}<div><h1>${h(B.nombre)}</h1><small>${h(B.usuario)} · toca para editar tu banda</small></div></button>
   <div class="chip"><span>${eur(B.dinero)}</span><small>Nivel ${B.nivel}</small></div></header>
   <main id="vista"></main><div id="aviso" class="aviso fijo" hidden></div>
-  <nav class="nav">${NAV.map(([k, n, d]) => `<button class="${k === tab ? 'on' : ''}" data-t="${k}">${ic(d)}${n}</button>`).join('')}<button id="salir">${ic('<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>')}Salir</button></nav>`;
-  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; vistaApp(); });
+  <nav class="nav">${NAV.map(([k, n, d]) => `<button class="${k === tab && !SUB ? 'on' : ''}" data-t="${k}">${ic(d)}${n}</button>`).join('')}<button id="salir">${ic('<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>')}Salir</button></nav>`;
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; SUB = null; vistaApp(); });
+  document.getElementById('hq').onclick = () => { SUB = {v: 'mibanda'}; vistaApp(); };
+  window.scrollTo(0, 0);
   document.getElementById('salir').onclick = async () => { await sb.auth.signOut(); B = null; vistaAuth(false); };
-  ({inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking})[tab]();
+  (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking}[tab])();
 }
 
 async function pInicio() {
@@ -229,7 +240,7 @@ function pTienda() {
   v.innerHTML = `<section><h2>Músicos</h2><p class="nota" style="margin:0">Cada músico cuesta ${eur(pr)} con su uniforme. Cada compra gasta 1 acción (te quedan ${B.acciones}).</p>
   <p class="nota" style="margin:4px 0 4px">Plantilla: ${n0} de ${mx} (máximo de tu nivel).</p>
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${E.fase !== 'ensayo' || B.acciones < 1 || B.dinero < pr * c || n0 + c > mx || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
-  <section><h2>Próximamente</h2><p class="nota" style="margin:0">El montaje de marchas, el banderín, el diseño del uniforme y el disco llegarán con la temporada.</p></section>`;
+  <section><h2>Próximamente</h2><p class="nota" style="margin:0">El banderín y el disco llegarán con la temporada. El uniforme y el montaje de marchas están en Mi banda (toca el nombre de tu banda arriba).</p></section>`;
   v.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
     const {error} = await sb.rpc('comprar_musicos', {p_seccion: b.dataset.k, p_cantidad: +b.dataset.c});
     if (error) return aviso(error.message);
@@ -497,8 +508,185 @@ async function pRanking() {
   const {data, error} = await sb.from('bandas').select('id,nombre,usuario,escudo,nivel,experiencia,prestigio')
     .order('nivel', {ascending: false}).order('experiencia', {ascending: false}).order('prestigio', {ascending: false});
   if (error) return aviso(error.message);
-  v.innerHTML = `<section><h2>Ranking</h2><ol class="rank">${data.map((b, i) => `<li class="${b.id === B.id ? 'yo' : ''}"><span class="pos">${i + 1}</span>${escudo(b.escudo, 40)}
+  v.innerHTML = `<section><h2>Ranking</h2><ol class="rank">${data.map((b, i) => `<li data-id="${b.id}" class="${b.id === B.id ? 'yo' : ''}"><span class="pos">${i + 1}</span>${escudo(b.escudo, 40)}
   <div class="nm"><b>${h(b.nombre)}</b><small>${h(b.usuario)}</small></div><div class="r"><b>Nivel ${b.nivel}</b><br><small>${b.experiencia} xp</small></div></li>`).join('')}</ol></section>`;
+  v.querySelectorAll('li[data-id]').forEach(li => li.onclick = () => { SUB = {v: 'pp', id: li.dataset.id}; vistaApp(); });
+}
+
+// ======== Uniformes (imágenes recoloreables) ========
+const UN = {}, GO = {}, GPOS = {1: [140, 42], 2: [140, 20], 3: [140, 20]};
+const PAL = ['#14213d', '#1f3a8a', '#14532d', '#7a1020', '#5b2c83', '#e8e4d8', '#1b1b1f', '#5a3a1a', '#8a8a8a', '#e8c34a'];
+const UDEF = {modelo: 2, chaqueta: '#7a1020', pantalon: '#1b1b1f', corbata: '#e8c34a', cinturon: '#5a3a1a', metal: 'oro', gorra: '#7a1020'};
+const cargaImg = src => new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ko(new Error('No se pudo cargar ' + src)); i.src = src; });
+const pixeles = img => { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d', {willReadFrequently: true}); x.drawImage(img, 0, 0); return x.getImageData(0, 0, c.width, c.height); };
+const hexRgb = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
+const pct = (arr, q) => { if (!arr.length) return 1; arr.sort((a, b) => a - b); return arr[Math.floor(arr.length * q)] || 1; };
+function recursoZonas(src, zsrc) {
+  return (async () => {
+    const [a, z] = await Promise.all([cargaImg(src), cargaImg(zsrc)]);
+    const A = pixeles(a), Z = pixeles(z), n = A.width * A.height, lum = new Float32Array(n), por = {1: [], 2: [], 3: [], 4: [], 5: [], 6: []};
+    for (let i = 0; i < n; i++) { lum[i] = .3 * A.data[i * 4] + .59 * A.data[i * 4 + 1] + .11 * A.data[i * 4 + 2]; const zn = Z.data[i * 4]; if (por[zn]) por[zn].push(lum[i]); }
+    const ref = {}; for (const k in por) ref[k] = pct(por[k], k == 5 ? .7 : .6);
+    return {A, Z, lum, ref};
+  })();
+}
+function pinta(R, u, tintes) {
+  const {A, Z, lum, ref} = R, out = new ImageData(new Uint8ClampedArray(A.data), A.width, A.height), n = A.width * A.height;
+  for (let i = 0; i < n; i++) {
+    const zn = Z.data[i * 4], o = i * 4;
+    if (tintes[zn]) { const f = Math.max(.35, Math.min(1.6, lum[i] / ref[zn])), c = tintes[zn]; out.data[o] = Math.min(255, c[0] * f); out.data[o + 1] = Math.min(255, c[1] * f); out.data[o + 2] = Math.min(255, c[2] * f); }
+    else if (zn === 5 && u.metal === 'plata') { const f = Math.pow(Math.max(.01, lum[i] / ref[5]), .9); out.data[o] = Math.min(255, 200 * f); out.data[o + 1] = Math.min(255, 205 * f); out.data[o + 2] = Math.min(255, 212 * f); }
+  }
+  return out;
+}
+async function dibujarUni(canvas, u) {
+  u = Object.assign({}, UDEF, u || {});
+  const m = u.modelo;
+  const R = await (UN[m] = UN[m] || recursoZonas(`uniformes/uniforme${m}.png`, `uniformes/uniforme${m}_zonas.png`));
+  const t = {1: hexRgb(u.chaqueta), 2: hexRgb(u.pantalon)}; if (m >= 2) t[3] = hexRgb(u.corbata); if (m === 3) t[4] = hexRgb(u.cinturon);
+  canvas.width = R.A.width; canvas.height = R.A.height;
+  const ctx = canvas.getContext('2d'); ctx.putImageData(pinta(R, u, t), 0, 0);
+  if (u.gorra) {
+    const G = await (GO.g = GO.g || recursoZonas('uniformes/gorra.png', 'uniformes/gorra_zonas.png'));
+    const tmp = document.createElement('canvas'); tmp.width = G.A.width; tmp.height = G.A.height;
+    tmp.getContext('2d').putImageData(pinta(G, u, {6: hexRgb(u.gorra)}), 0, 0);
+    ctx.drawImage(tmp, GPOS[m][0], GPOS[m][1]);
+  }
+}
+const uniHtml = (id, w) => `<canvas class="uni" data-uid="${id}" style="width:${w}px;height:${Math.round(w * 664 / 400)}px"></canvas>`;
+async function pintarUnis(mapa, raiz) {
+  for (const c of (raiz || document).querySelectorAll('canvas.uni')) {
+    const u = mapa[c.dataset.uid]; if (!u) continue;
+    try { await dibujarUni(c, u); } catch (e) { c.replaceWith(Object.assign(document.createElement('small'), {textContent: 'Uniforme no disponible'})); }
+  }
+}
+
+// ======== Perfil público, Mi banda y montaje ========
+let SUB = null;
+const temporadaActual = () => E.temporada || 1;
+const MAXREP = () => P.max_repertorio || 80;
+const volver = (k) => { SUB = k; vistaApp(); };
+
+async function pPerfilPublico() {
+  const v = document.getElementById('vista'), id = SUB.id;
+  v.innerHTML = '<section><p class="nota">Cargando…</p></section>';
+  const [rb, rc, rr] = await Promise.all([
+    sb.from('bandas').select('id,nombre,usuario,escudo,nivel,prestigio,uniforme,bateria,cornetas,percusion,madera,metal').eq('id', id).maybeSingle(),
+    sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', id),
+    sb.from('repertorio').select('marchas(titulo,compositor,estilo,propia_de,dedicatoria)').eq('banda_id', id)]);
+  const b = rb.data; if (!b) { v.innerHTML = '<section><p class="nota">No se encuentra esa banda.</p></section>'; return; }
+  const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada));
+  const ms = (rr.data || []).map(x => x.marchas).sort((x, y) => (!!y.propia_de - !!x.propia_de) || x.titulo.localeCompare(y.titulo, 'es'));
+  const f = ms.filter(m => m.estilo === 'Fúnebre').length, pf = ms.length ? Math.round(f * 100 / ms.length) : 0, mu = tot(b);
+  const fila = m => `<div class="fila"><div style="flex:1"><b style="display:block">${h(m.titulo)}</b><small style="color:var(--gris)">${m.propia_de ? 'Compuesta por la banda' : h(m.compositor || '')}</small></div>${m.propia_de ? '<span class="pill" style="background:var(--oro2)">Propia</span>' : ''}<span class="pill ${m.estilo === 'Fúnebre' ? 'p2' : ''}">${m.estilo}</span></div>`;
+  v.innerHTML = `<section style="text-align:center">${escudo(b.escudo, 84)}<h2 style="margin:8px 0 2px">${h(b.nombre)}</h2><small style="color:var(--gris)">usuario ${h(b.usuario)}</small>
+  <div style="display:flex;justify-content:center;gap:8px;margin-top:10px"><span class="pill p2">Nivel ${b.nivel}</span><span class="pill p2">Prestigio ${b.prestigio}</span></div></section>
+  <section><div class="res"><div><span class="num">${cs.length}</span><small>contratos</small></div><div><span class="num">${mu}</span><small>músicos</small></div><div><span class="num">${ms.length}</span><small>marchas</small></div><div><span class="num">${ms.filter(m => m.propia_de).length}</span><small>propias</small></div></div></section>
+  <section><h2>Estilo</h2><div class="barra"><i style="width:${pf}%"></i></div><div class="fila2"><span>Fúnebre ${pf} %</span><span>Alegre ${100 - pf} %</span></div></section>
+  <section style="text-align:center"><h2 style="text-align:left">Uniforme</h2>${uniHtml('pp', 170)}</section>
+  <section><h2>Contratos</h2>${cs.length ? cs.map(c => `<div class="fila"><div style="flex:1"><b style="display:block">${h(c.hermandades.nombre)}</b><small style="color:var(--gris)">${c.hermandades.jornada}</small></div><span class="pill p2">${c.anios} ${c.anios === 1 ? 'año' : 'años'}</span></div>`).join('') : '<p class="nota" style="margin:0">Todavía no tiene contratos.</p>'}</section>
+  <section><h2>Repertorio</h2><div id="rp">${ms.slice(0, 5).map(fila).join('')}</div>${ms.length > 5 ? `<button class="of2" id="vm">Ver las ${ms.length - 5} marchas restantes</button>` : ''}</section>
+  <button class="of2" id="vr" style="margin-top:14px">Volver al ranking</button>`;
+  if (ms.length > 5) document.getElementById('vm').onclick = e => { document.getElementById('rp').innerHTML = ms.map(fila).join(''); e.target.remove(); };
+  document.getElementById('vr').onclick = () => { tab = 'ranking'; volver(null); };
+  pintarUnis({pp: b.uniforme}, v);
+}
+
+let FN = null, U = null;
+function pMiBanda() {
+  const v = document.getElementById('vista');
+  if (!FN) FN = {tipo: B.tipo || 'Banda de Música', nombre: B.nombre_elegido || '', proc: B.procedencia || ''};
+  if (!U) U = Object.assign({}, UDEF, B.uniforme || {});
+  const ya = B.nombre_temp === temporadaActual(), nm = (B.repertorio || []).length, np = nm - (B.repertorio || []).filter(r => !r.marchas.propia_de).length;
+  const full = () => { const n = FN.nombre.trim(), p = FN.proc.trim(); return n ? `${FN.tipo} «${n}»${p ? ' de ' + p : ''}` : ''; };
+  const nuevoModelo = U.modelo !== (B.uniforme || UDEF).modelo, coste = nuevoModelo ? tot(B) * P.precio_uniforme : 0;
+  const sw = k => `<div class="sws">${PAL.map(c => `<button class="sw ${U[k] === c ? 'on' : ''}" data-k="${k}" data-c="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>`;
+  v.innerHTML = `<section><h2>Nombre</h2><div class="lbl">Tipo</div><div class="tipos">${TIPOS.map(t => `<button class="seg ${FN.tipo === t ? 'on' : ''}" data-t="${t}">${t}</button>`).join('')}</div>
+  <label for="nn">Nombre</label><input id="nn" maxlength="40" value="${h(FN.nombre)}"><label for="np">Procedencia <span class="op">(opcional)</span></label><input id="np" maxlength="30" value="${h(FN.proc)}">
+  <div class="prev" id="pv" style="margin-top:12px">${h(full())}</div>
+  <p class="nota">Cambiar el nombre cuesta ${eur(P.precio_cambio_nombre)} y solo puedes hacerlo una vez por temporada.${ya ? ' Esta temporada ya lo has cambiado.' : ''}</p>
+  <button class="of" id="gn" ${ya || !full() || full() === B.nombre ? 'disabled' : ''}>Cambiar nombre (${eur(P.precio_cambio_nombre)})</button></section>
+  <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${B.escudo === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div><p class="nota">Cambiar de escudo es gratis.</p></section>
+  <section><h2>Uniforme</h2><div style="text-align:center">${uniHtml('ed', 190)}</div>
+  <div class="lbl">Modelo</div><div class="mods">${[1, 2, 3].map(m => `<button class="md ${U.modelo === m ? 'on' : ''}" data-m="${m}">${uniHtml('m' + m, 62)}<span>${['Botones dorados', 'Corbata y galones', 'Cruzada y cinturón'][m - 1]}</span></button>`).join('')}</div>
+  <div class="lbl">Chaqueta</div>${sw('chaqueta')}<div class="lbl">Pantalón</div>${sw('pantalon')}
+  ${U.modelo >= 2 ? `<div class="lbl">Corbata</div>${sw('corbata')}` : ''}${U.modelo === 3 ? `<div class="lbl">Cinturón</div>${sw('cinturon')}` : ''}
+  <div class="lbl">Botonadura y galones</div><div class="bt"><button class="seg ${U.metal === 'oro' ? 'on' : ''}" data-mt="oro">Oro</button><button class="seg ${U.metal === 'plata' ? 'on' : ''}" data-mt="plata">Plata</button></div>
+  <div class="lbl">Gorra</div><div class="bt"><button class="seg ${!U.gorra ? 'on' : ''}" data-g="0">Sin gorra</button><button class="seg ${U.gorra ? 'on' : ''}" data-g="1">Gorra de plato</button></div>
+  ${U.gorra ? `<div class="lbl">Color de la gorra</div>${sw('gorra')}` : ''}
+  <p class="nota">${nuevoModelo ? `Estrenar este modelo cuesta ${eur(coste)} (${eur(P.precio_uniforme)} por músico).` : 'Cambiar solo los colores es gratis.'} Los demás jugadores ven tu uniforme en tu perfil.</p>
+  <button class="of" id="gu" ${nuevoModelo && coste > B.dinero ? 'disabled' : ''}>Guardar uniforme${coste ? ' (' + eur(coste) + ')' : ''}</button></section>
+  <section><h2>Repertorio</h2><div class="fila" style="padding-top:0"><div style="flex:1"><b style="display:block">${nm} de ${MAXREP()} marchas</b><small style="color:var(--gris)">${np} propias · el repertorio admite como máximo ${MAXREP()}</small></div></div>
+  <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" disabled>Componer una marcha (próximamente)</button></section>`;
+  const redo = () => { pMiBanda(); };
+  v.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; FN.tipo = b.dataset.t; redo(); });
+  const pv = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; document.getElementById('pv').textContent = full(); document.getElementById('gn').disabled = ya || !full() || full() === B.nombre; };
+  document.getElementById('nn').oninput = pv; document.getElementById('np').oninput = pv;
+  document.getElementById('gn').onclick = async () => {
+    const {error} = await sb.rpc('cambiar_nombre', {p_tipo: FN.tipo, p_nombre: FN.nombre, p_procedencia: FN.proc});
+    if (error) return aviso(error.message);
+    FN = null; await init();
+  };
+  v.querySelectorAll('[data-e]').forEach(b => b.onclick = async () => {
+    const {error} = await sb.rpc('cambiar_escudo', {p_escudo: +b.dataset.e});
+    if (error) return aviso(error.message);
+    await init();
+  });
+  v.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { U.modelo = +b.dataset.m; redo(); });
+  v.querySelectorAll('.sw[data-k]').forEach(b => b.onclick = () => { U[b.dataset.k] = b.dataset.c; redo(); });
+  v.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { U.metal = b.dataset.mt; redo(); });
+  v.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { U.gorra = b.dataset.g === '1' ? (U.gorra || '#7a1020') : null; redo(); });
+  document.getElementById('gu').onclick = async () => {
+    const {error} = await sb.rpc('guardar_uniforme', {p: U});
+    if (error) return aviso(error.message);
+    U = null; await init();
+  };
+  document.getElementById('mm').onclick = () => { MS = new Set(); volver({v: 'montaje'}); };
+  const mapa = {ed: U}; [1, 2, 3].forEach(m => mapa['m' + m] = Object.assign({}, U, {modelo: m, gorra: null}));
+  pintarUnis(mapa, v);
+}
+
+let MS = new Set(), MF = 'todas', MT = 'montar', CAT = null;
+async function pMontaje() {
+  const v = document.getElementById('vista');
+  if (!CAT) {
+    v.innerHTML = '<section><p class="nota">Cargando marchas…</p></section>';
+    const {data, error} = await sb.from('marchas').select('id,titulo,compositor,estilo,propia_de,dedicatoria').order('titulo');
+    if (error) return aviso(error.message);
+    CAT = data;
+  }
+  const mias = new Set((B.repertorio || []).map(r => r.marcha_id)), nrep = mias.size, max = MAXREP(), por = P.montajes_por_accion || 2, pr = P.precio_montaje || 150;
+  const ens = E.fase === 'ensayo', n = MS.size, libres = max - nrep;
+  const base = CAT.filter(m => MT === 'montar' ? !m.propia_de : mias.has(m.id));
+  const lista = base.filter(m => MF === 'todas' || (MF === 'fun' ? m.estilo === 'Fúnebre' : m.estilo === 'Alegre'));
+  const fila = m => {
+    const tengo = mias.has(m.id), sel = MS.has(m.id);
+    const btn = MT === 'montar' ? (tengo ? '<button class="mini off" disabled>Ya la tienes</button>' : `<button class="mini ${sel ? 'sel' : ''}" data-id="${m.id}">${sel ? 'Elegida' : 'Elegir'}</button>`) : '';
+    return `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${h(m.titulo)}</b><small style="color:var(--gris)">${m.propia_de ? 'Propia' + (m.dedicatoria ? ' · ' + h(m.dedicatoria) : '') : h(m.compositor || '')}</small></div><span class="pill ${m.estilo === 'Fúnebre' ? 'p2' : ''}">${m.estilo}</span>${btn}</div>`;
+  };
+  v.innerHTML = `<section style="background:linear-gradient(160deg,#2a1238,#4a2466);color:#fff"><div class="res"><div><span class="num" style="color:var(--oro2)">${nrep}</span><small style="color:#d8c9e3">marchas en repertorio</small></div><div><span class="num" style="color:var(--oro2)">${max}</span><small style="color:#d8c9e3">máximo en repertorio</small></div></div>
+  <p class="nota" style="color:#d8c9e3;margin-top:10px">Cada marcha cuesta ${eur(pr)} y con 1 acción montas hasta ${por}. Solo en día de ensayo (te quedan ${B.acciones} acciones).</p></section>
+  <div class="tabs3"><button class="${MT === 'montar' ? 'on' : ''}" data-mt="montar">Montar</button><button class="${MT === 'mi' ? 'on' : ''}" data-mt="mi">Mi repertorio</button></div>
+  <section><div class="bt" style="margin-bottom:8px">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, t]) => `<button class="seg ${MF === k ? 'on' : ''}" data-f="${k}">${t}</button>`).join('')}</div>
+  ${lista.map(fila).join('') || '<p class="nota">No hay marchas.</p>'}
+  <p class="nota">${CAT.filter(m => !m.propia_de).length} marchas en el catálogo · te caben ${libres} más · máximo ${por} por acción</p></section>
+  <button class="of2" id="vb">Volver a Mi banda</button>
+  ${MT === 'montar' ? `<div class="barra-fija"><button class="of" id="mn" ${!n || !ens || B.acciones < 1 || B.dinero < n * pr || n > libres ? 'disabled' : ''}>${n ? `Montar ${n} marcha${n > 1 ? 's' : ''} (1 acción · ${eur(n * pr)})` : 'Elige hasta ' + por + ' marchas'}</button></div>` : ''}`;
+  v.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { MT = b.dataset.mt; pMontaje(); });
+  v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { MF = b.dataset.f; pMontaje(); });
+  v.querySelectorAll('[data-id]').forEach(b => b.onclick = () => {
+    const id = +b.dataset.id; if (MS.has(id)) MS.delete(id); else { if (MS.size >= por) return aviso('Solo puedes elegir ' + por + ' marchas por acción.'); MS.add(id); }
+    pMontaje();
+  });
+  document.getElementById('vb').onclick = () => volver({v: 'mibanda'});
+  const mn = document.getElementById('mn');
+  if (mn) mn.onclick = async () => {
+    mn.disabled = true;
+    const {error} = await sb.rpc('montar_marchas', {p_ids: [...MS]});
+    if (error) { mn.disabled = false; return aviso(error.message); }
+    MS = new Set(); CAT = null; await init();
+  };
+  if (!ens) aviso('Hoy es día de procesiones: solo puedes montar marchas en día de ensayo.');
 }
 
 init();
