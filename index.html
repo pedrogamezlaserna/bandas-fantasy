@@ -117,7 +117,7 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .ttl{position:absolute;left:0;right:0;top:10px;text-align:center;font:700 20px Georgia,serif;color:var(--oro2);z-index:5}
 .llu{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;animation:llu .5s linear infinite}@keyframes llu{to{transform:translate(-6px,16px)}}
 @media (prefers-reduced-motion:reduce){.bob,.swy,.nt,.llu{animation:none}}
-.mlist{max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--lin);border-radius:12px}.mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--lin);margin:0;cursor:pointer}.mrow input{width:22px;height:22px;flex:none;margin:0;padding:0;accent-color:var(--v)}.mrow span:nth-of-type(1){flex:1;min-width:0}.mrow small{display:block;color:var(--gris);font-weight:400}.avj{border-bottom:1px solid var(--lin);padding:10px 0;cursor:pointer}.ajb{margin-top:8px;cursor:auto}.b3x{display:block;width:100%;margin-top:8px;min-height:44px;background:var(--lin);color:var(--v);border-radius:12px;font-weight:700}.b3x.rojo{background:#fbe9e7;color:#8a1c10}.opt2{display:flex;gap:10px;align-items:center;margin-top:12px}.opt2 input{width:22px;height:22px;margin:0;flex:none}</style>
+.mlist{max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--lin);border-radius:12px}.mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--lin);margin:0;cursor:pointer}.mrow input{width:22px;height:22px;flex:none;margin:0;padding:0;accent-color:var(--v)}.mrow span:nth-of-type(1){flex:1;min-width:0}.mrow small{display:block;color:var(--gris);font-weight:400}.avj{border-bottom:1px solid var(--lin);padding:10px 0;cursor:pointer}.ajb{margin-top:8px;cursor:auto}.b3x{display:block;width:100%;margin-top:8px;min-height:44px;background:var(--lin);color:var(--v);border-radius:12px;font-weight:700}.b3x.rojo{background:#fbe9e7;color:#8a1c10}.opt2{display:flex;gap:10px;align-items:center;margin-top:12px}.opt2 input{width:22px;height:22px;margin:0;flex:none}.paper{background:#f6efd9!important;color:#1e1226;border:1px solid #cdbf93;box-shadow:inset 0 0 0 4px #f6efd9,inset 0 0 0 5px #cdbf93}.paper .mast{text-align:center;border-bottom:3px double #1e1226;padding-bottom:8px;margin-bottom:6px}.paper .mast small{letter-spacing:.2em;text-transform:uppercase;font-size:10px;color:#6a5f73}.paper .mast h2{font-family:Georgia,'Times New Roman',serif;font-size:24px;margin:2px 0;color:#1e1226;font-weight:900}.mast2{display:flex;justify-content:space-between;font-size:11px;border-top:1px solid #1e1226;margin-top:6px;padding-top:4px;text-transform:uppercase;letter-spacing:.08em}.paper article{padding:10px 0;border-bottom:1px solid #cdbf93}.paper h3{font-family:Georgia,serif;font-size:16px;line-height:1.25;margin:0 0 4px;color:#1e1226}.paper .nota1 h3{font-size:22px}.paper article p{margin:0;font-size:13.5px;line-height:1.45;color:#3a2f44;max-width:none}.paper .nota1 p{column-count:1}.leer{display:block;width:100%;margin-top:12px;min-height:44px;background:#1e1226;color:#f6efd9;border-radius:6px;font-weight:700;font-family:Georgia,serif}.mj .paper{padding:16px;border-radius:12px}</style>
 </head>
 <body>
 <div id="app"></div>
@@ -278,6 +278,22 @@ function vistaApp() {
   (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico, componer: pComponer}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking, admin: pAdmin}[tab])();
 }
 
+
+const titNoticia = t => { const m = t.match(/^(.{12,90}?)[:.]\s+(.*)$/s); return m ? [m[1], m[2]] : [t, '']; };
+function gaceta(ns, boton, temp) {
+  const cab = `<div class="mast"><small>Gaceta de la Semana Santa</small><h2>El Foro Cofrade informa…</h2><div class="mast2"><span>${temp ? 'Hemeroteca' : 'Últimas noticias'}</span><span>${ns[0] ? 'Temporada ' + ns[0].temporada : ''}</span></div></div>`;
+  if (!ns.length) return cab + '<p class="nota" style="margin:10px 0 0">Todavía no hay noticias. Aquí verás los contratos, las renovaciones y todo lo que pase en la temporada.</p>';
+  const nota = (n, k) => { const [t, c] = titNoticia(n.texto); return `<article class="${k ? 'nota1' : 'nota2'}"><h3>${h(t)}</h3>${c ? `<p>${h(c)}</p>` : ''}</article>`; };
+  return cab + ns.map((n, i) => nota(n, i === 0 && !temp)).join('') + (boton ? '<button class="leer" id="nmas">Leer más noticias</button>' : '');
+}
+async function verNoticias() {
+  const e = ov('<div class="mj"><h2>Noticias</h2><p>Cargando…</p></div>');
+  const {data, error} = await sb.from('noticias').select('id,temporada,texto,creada').order('id', {ascending: false}).limit(200);
+  if (error) { e.remove(); return aviso(error.message); }
+  ov(`<div class="mj"><div class="paper" style="text-align:left">${gaceta(data || [], false, true)}</div><button class="b2" id="ok">Cerrar</button></div>`);
+  document.getElementById('ok').onclick = () => document.getElementById('ov').remove();
+}
+
 async function pInicio() {
   const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana';
   const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
@@ -297,12 +313,13 @@ async function pInicio() {
   <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>`;
   if (!sem) document.getElementById('ens').onclick = ensayar;
   if (sem) semanaLista();
-  const [rc, rn] = await Promise.all([sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', B.id), sb.from('noticias').select('texto').order('id', {ascending: false}).limit(8)]);
+  const [rc, rn] = await Promise.all([sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', B.id), sb.from('noticias').select('id,temporada,texto,creada').order('id', {ascending: false}).limit(3)]);
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada)), ns = rn.data || [];
   const ect = document.getElementById('ct'), ent = document.getElementById('nt');
   if (!ect || !ent) return;
   ect.innerHTML = '<h2>Tus contratos</h2>' + (cs.length ? cs.map(c => `<div class="fila"><div style="flex:1"><b style="display:block">${h(c.hermandades.nombre)}</b><small style="color:var(--gris)">${c.hermandades.jornada}</small></div><span class="pill p2">${c.anios} ${c.anios === 1 ? 'año' : 'años'}</span></div>`).join('') : '<p class="nota" style="margin:0">Todavía no tienes contratos. Presenta ofertas en la pestaña Contratos.</p>');
-  ent.innerHTML = '<h2>Noticias</h2>' + (ns.length ? ns.map(n => `<div class="fila"><span style="font-size:14px;line-height:1.4">${h(n.texto)}</span></div>`).join('') : '<p class="nota" style="margin:0">Todavía no hay noticias. Aquí verás los contratos, las renovaciones y todo lo que pase en la temporada.</p>');
+  ent.className = 'paper'; ent.innerHTML = gaceta(ns, true);
+  const mas = document.getElementById('nmas'); if (mas) mas.onclick = verNoticias;
 }
 
 function pTienda() {
