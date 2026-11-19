@@ -190,7 +190,9 @@ async function init() {
   const {data: ps, error: e1} = await sb.from('parametros').select('*');
   if (e1) { app.innerHTML = '<main><section><h2>No se pudo cargar el juego</h2><p class="nota">' + h(e1.message) + '</p></section></main>'; return; }
   P = {}; ps.forEach(x => P[x.clave] = Number(x.valor));
-  const {data: est} = await sb.rpc('sincronizar'); E = est || E;
+  const {data: est, error: e0} = await sb.rpc('sincronizar');
+  if (e0) { app.innerHTML = '<main><section><h2>No se pudo actualizar el día</h2><p class="nota">' + h(e0.message) + '</p><p class="nota">Avisa al administrador y copia este mensaje.</p><button class="of2" onclick="location.reload()">Reintentar</button></section></main>'; return; }
+  E = est || E;
   { const {data: ad} = await sb.rpc('es_admin'); ADM = ad === true; }
   await sb.rpc('refrescar_dia');
   const {data: b} = await sb.from('bandas').select('*, repertorio(marcha_id, marchas(estilo,propia_de))').eq('id', session.user.id).maybeSingle();
