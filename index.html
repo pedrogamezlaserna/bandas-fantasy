@@ -240,7 +240,9 @@ function pTienda() {
   v.innerHTML = `<section><h2>Músicos</h2><p class="nota" style="margin:0">Cada músico cuesta ${eur(pr)} con su uniforme. Cada compra gasta 1 acción (te quedan ${B.acciones}).</p>
   <p class="nota" style="margin:4px 0 4px">Plantilla: ${n0} de ${mx} (máximo de tu nivel).</p>
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${E.fase !== 'ensayo' || B.acciones < 1 || B.dinero < pr * c || n0 + c > mx || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
+  <section><h2>Marchas</h2><p class="nota" style="margin:0">Tienes ${(B.repertorio || []).length} de ${P.max_repertorio || 80} marchas. Cada una cuesta ${eur(P.precio_montaje || 150)} y con 1 acción montas hasta ${P.montajes_por_accion || 2}.</p><button class="of" id="irm">Ver y montar marchas</button></section>
   <section><h2>Próximamente</h2><p class="nota" style="margin:0">El banderín y el disco llegarán con la temporada. El uniforme y el montaje de marchas están en Mi banda (toca el nombre de tu banda arriba).</p></section>`;
+  document.getElementById('irm').onclick = () => { MS = new Set(); MBACK = 'tienda'; SUB = {v: 'montaje'}; vistaApp(); };
   v.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
     const {error} = await sb.rpc('comprar_musicos', {p_seccion: b.dataset.k, p_cantidad: +b.dataset.c});
     if (error) return aviso(error.message);
@@ -641,12 +643,12 @@ function pMiBanda() {
     if (error) return aviso(error.message);
     U = null; await init();
   };
-  document.getElementById('mm').onclick = () => { MS = new Set(); volver({v: 'montaje'}); };
+  document.getElementById('mm').onclick = () => { MS = new Set(); MBACK = 'mibanda'; volver({v: 'montaje'}); };
   const mapa = {ed: U}; [1, 2, 3].forEach(m => mapa['m' + m] = Object.assign({}, U, {modelo: m, gorra: null}));
   pintarUnis(mapa, v);
 }
 
-let MS = new Set(), MF = 'todas', MT = 'montar', CAT = null;
+let MBACK = 'mibanda', MS = new Set(), MF = 'todas', MT = 'montar', CAT = null;
 async function pMontaje() {
   const v = document.getElementById('vista');
   if (!CAT) {
@@ -670,7 +672,7 @@ async function pMontaje() {
   <section><div class="bt" style="margin-bottom:8px">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, t]) => `<button class="seg ${MF === k ? 'on' : ''}" data-f="${k}">${t}</button>`).join('')}</div>
   ${lista.map(fila).join('') || '<p class="nota">No hay marchas.</p>'}
   <p class="nota">${CAT.filter(m => !m.propia_de).length} marchas en el catálogo · te caben ${libres} más · máximo ${por} por acción</p></section>
-  <button class="of2" id="vb">Volver a Mi banda</button>
+  <button class="of2" id="vb">${MBACK === 'tienda' ? 'Volver a la Tienda' : 'Volver a Mi banda'}</button>
   ${MT === 'montar' ? `<div class="barra-fija"><button class="of" id="mn" ${!n || !ens || B.acciones < 1 || B.dinero < n * pr || n > libres ? 'disabled' : ''}>${n ? `Montar ${n} marcha${n > 1 ? 's' : ''} (1 acción · ${eur(n * pr)})` : 'Elige hasta ' + por + ' marchas'}</button></div>` : ''}`;
   v.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { MT = b.dataset.mt; pMontaje(); });
   v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { MF = b.dataset.f; pMontaje(); });
@@ -678,7 +680,7 @@ async function pMontaje() {
     const id = +b.dataset.id; if (MS.has(id)) MS.delete(id); else { if (MS.size >= por) return aviso('Solo puedes elegir ' + por + ' marchas por acción.'); MS.add(id); }
     pMontaje();
   });
-  document.getElementById('vb').onclick = () => volver({v: 'mibanda'});
+  document.getElementById('vb').onclick = () => { if (MBACK === 'tienda') { tab = 'tienda'; volver(null); } else volver({v: 'mibanda'}); };
   const mn = document.getElementById('mn');
   if (mn) mn.onclick = async () => {
     mn.disabled = true;
