@@ -168,9 +168,25 @@ async function entrar(reg) {
   init();
 }
 
+
+async function cambiarClave(a, b) {
+  if (a.length < 6) return 'La contraseña necesita al menos 6 caracteres.';
+  if (a !== b) return 'Las dos contraseñas no coinciden.';
+  const {error} = await sb.auth.updateUser({password: a, data: {cambiar_clave: false}});
+  return error ? traducir(error.message) : '';
+}
+function vistaClave() {
+  app.innerHTML = `<main class="auth"><h1>Elige tu contraseña</h1><p class="lema">El administrador te ha puesto una contraseña temporal. Elige ahora una nueva que solo sepas tú.</p>
+  <label for="c1">Nueva contraseña</label><input id="c1" type="password" autocomplete="new-password">
+  <label for="c2">Repítela</label><input id="c2" type="password" autocomplete="new-password">
+  <p id="aviso" class="aviso" hidden></p><button id="go">Guardar y entrar</button></main>`;
+  document.getElementById('go').onclick = async () => { const r = await cambiarClave(document.getElementById('c1').value, document.getElementById('c2').value); r ? aviso(r) : init(); };
+}
+
 async function init() {
   const {data: {session}} = await sb.auth.getSession();
   if (!session) return vistaAuth(false);
+  if (session.user.user_metadata && session.user.user_metadata.cambiar_clave) return vistaClave();
   const {data: ps, error: e1} = await sb.from('parametros').select('*');
   if (e1) { app.innerHTML = '<main><section><h2>No se pudo cargar el juego</h2><p class="nota">' + h(e1.message) + '</p></section></main>'; return; }
   P = {}; ps.forEach(x => P[x.clave] = Number(x.valor));
@@ -881,8 +897,10 @@ function pMiBanda() {
   <p class="nota">${nuevoModelo ? `Estrenar este modelo cuesta ${eur(coste)} (${eur(P.precio_uniforme)} por músico).` : 'Cambiar solo los colores es gratis.'} Los demás jugadores ven tu uniforme en tu perfil.</p>
   <button class="of" id="gu" ${nuevoModelo && coste > B.dinero ? 'disabled' : ''}>Guardar uniforme${coste ? ' (' + eur(coste) + ')' : ''}</button></section>
   <section><h2>Repertorio</h2><div class="fila" style="padding-top:0"><div style="flex:1"><b style="display:block">${nm} de ${MAXREP()} marchas</b><small style="color:var(--gris)">${np} propias · el repertorio admite como máximo ${MAXREP()}</small></div></div>
-  <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" id="cm">Componer una marcha</button></section>`;
+  <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" id="cm">Componer una marcha</button></section>
+  <section><h2>Contraseña</h2><label for="cp1">Nueva contraseña</label><input id="cp1" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres"><label for="cp2">Repítela</label><input id="cp2" type="password" autocomplete="new-password"><button class="of2" id="cpb">Cambiar contraseña</button></section>`;
   const redo = () => { pMiBanda(); };
+  document.getElementById('cpb').onclick = async () => { const r = await cambiarClave(document.getElementById('cp1').value, document.getElementById('cp2').value); if (r) return aviso(r); aviso(''); document.getElementById('cp1').value = document.getElementById('cp2').value = ''; alert('Contraseña cambiada.'); };
   v.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; FN.tipo = b.dataset.t; redo(); });
   const pv = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; document.getElementById('pv').textContent = full(); document.getElementById('gn').disabled = ya || !full() || full() === B.nombre; };
   document.getElementById('nn').oninput = pv; document.getElementById('np').oninput = pv;
