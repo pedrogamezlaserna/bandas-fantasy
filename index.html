@@ -191,7 +191,7 @@ async function vistaCrear() {
     CAT = data;
   }
   const base = CAT.filter(m => !m.propia_de).sort((x, y) => x.id - y.id);
-  if (!FM) FM = new Set([...base.filter(m => m.estilo === 'Fúnebre').slice(0, 10), ...base.filter(m => m.estilo !== 'Fúnebre').slice(0, 10)].map(m => m.id));
+  if (!FM) FM = new Set();
   const min = P.min_musicos, pr = P.precio_musico + P.precio_uniforme;
   app.innerHTML = `<header class="top"><div><h1>Funda tu banda</h1><small>Solo se hace una vez</small></div></header><main>
   <section><h2>Nombre</h2>
@@ -202,7 +202,7 @@ async function vistaCrear() {
   <div class="lbl">Así se llamará tu banda</div><div id="prev" class="prev"></div>
   <p class="nota">Solo da realismo al nombre: no influye en el juego.</p></section>
   <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${F.esc === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}" aria-pressed="${F.esc === i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div></section>
-  <section><h2>Marchas iniciales</h2><p class="nota" style="margin:0 0 8px">Elige exactamente 20 marchas para empezar. Más adelante podrás montar más, hasta ${P.max_repertorio || 80}. <b id="mc"></b></p>
+  <section><h2>Marchas iniciales</h2><p class="nota" style="margin:0 0 8px">Elige exactamente 20 marchas para empezar: toca las que quieras en la lista. Más adelante podrás montar más, hasta ${P.max_repertorio || 80}. <b id="mc"></b></p>
   <div class="tabs3" id="mfl" style="margin-top:0">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, n]) => `<button data-mf="${k}" class="${FMF === k ? 'on' : ''}">${n}</button>`).join('')}</div>
   <div id="ml" class="mlist"></div></section>
   <section><h2>Plantilla inicial</h2><p class="nota" style="margin:0 0 4px">Mínimo ${min} músicos. Cada uno cuesta ${eur(pr)} con su uniforme. Cornetas: máximo ${tope('cornetas')}. Percusión: máximo ${tope('percusion')} (dos cajas, bombo y platillo).</p>
