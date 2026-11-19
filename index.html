@@ -1034,6 +1034,15 @@ function pComponer() {
   const v = document.getElementById('vista'), acc = P.compo_acciones || 4, inv = INVS.find(i => i[0] === CF.inv), coste = P[inv[2]];
   const nrep = (B.repertorio || []).length, ens = E.fase === 'ensayo';
   const ok = CF.titulo.trim().length >= 2 && CF.comp.trim().length >= 2 && CF.estilo && ens && B.acciones >= acc && B.dinero >= coste && nrep < MAXREP();
+  const falta = [];
+  if (coste === undefined) falta.push('el juego no tiene configurados los precios de composición (falta ejecutar el SQL 15a)');
+  if (!ens) falta.push('hoy es día de Semana Santa: solo se compone en día de ensayo');
+  if (B.acciones < acc) falta.push(`te quedan ${B.acciones} acciones y componer cuesta ${acc}`);
+  if (coste !== undefined && B.dinero < coste) falta.push(`esta inversión cuesta ${eur(coste)} y tienes ${eur(B.dinero)}`);
+  if (nrep >= MAXREP()) falta.push('tu repertorio está completo');
+  if (CF.titulo.trim().length < 2) falta.push('escribe un título');
+  if (CF.comp.trim().length < 2) falta.push('escribe un compositor');
+  if (!CF.estilo) falta.push('elige un estilo');
   const fun = ESTILOS.fun.includes(CF.estilo), corte = !CF.estilo ? '' : fun ? 'Corte fúnebre' : 'Corte alegre';
   const chip = e => `<button class="seg ${CF.estilo === e ? 'on' : ''}" data-e="${e}" style="min-height:44px">${e}</button>`;
   v.innerHTML = `<section><h2>Componer una marcha</h2><p class="nota" style="margin:0">Crea una marcha propia para tu banda. Solo en día de ensayo.</p>
@@ -1048,6 +1057,7 @@ function pComponer() {
   ${corte ? `<span class="pill p2">${corte}</span> ` : ''}<span class="pill" style="background:var(--oro2)">${inv[3].replace('Calidad', 'Calidad esperada')}</span></section>
   <section><p class="nota" style="margin:0"><b>Efecto en el juego:</b> las marchas lentas cuentan como fúnebres para tu repertorio y las de cornetas o de procesión como alegres. Las propias dan un pequeño extra de satisfacción cuando salen en la crónica, más cuanto mayor sea su calidad. Otras bandas no pueden montarlas. Al estrenarla sale una noticia para todos.</p></section>
   <button class="of2" id="vb">${MBACK === 'tienda' ? 'Volver a la Tienda' : 'Volver a Mi banda'}</button>
+  ${falta.length ? `<p class="nota" style="color:#8a1c10;font-weight:700">Para componer: ${falta.join('; ')}.</p>` : ''}
   <div class="barra-fija"><button class="of" id="cg" ${ok ? '' : 'disabled'}>Componer (${acc} acciones · ${eur(coste)})</button></div>`;
   const leer = () => { CF.titulo = document.getElementById('ct').value; CF.comp = document.getElementById('cc').value; CF.ded = document.getElementById('cd').value; };
   ['ct', 'cc', 'cd'].forEach(i => document.getElementById(i).onchange = () => { leer(); pComponer(); });
