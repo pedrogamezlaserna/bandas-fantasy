@@ -117,7 +117,7 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .ttl{position:absolute;left:0;right:0;top:10px;text-align:center;font:700 20px Georgia,serif;color:var(--oro2);z-index:5}
 .llu{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;animation:llu .5s linear infinite}@keyframes llu{to{transform:translate(-6px,16px)}}
 @media (prefers-reduced-motion:reduce){.bob,.swy,.nt,.llu{animation:none}}
-</style>
+.mlist{max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--lin);border-radius:12px}.mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--lin);margin:0;cursor:pointer}.mrow input{width:22px;height:22px;flex:none;margin:0;padding:0;accent-color:var(--v)}.mrow span:nth-of-type(1){flex:1;min-width:0}.mrow small{display:block;color:var(--gris);font-weight:400}</style>
 </head>
 <body>
 <div id="app"></div>
@@ -183,7 +183,15 @@ async function init() {
 
 const nombreFinal = () => { const n = F.nombre.trim(), p = F.proc.trim(); return n ? `${F.tipo} «${n}»${p ? ' de ' + p : ''}` : ''; };
 
-function vistaCrear() {
+let FM = null, FMF = 'todas';
+async function vistaCrear() {
+  if (!CAT) {
+    const {data, error} = await sb.from('marchas').select('id,titulo,compositor,estilo,propia_de,dedicatoria').order('titulo');
+    if (error) return aviso(error.message);
+    CAT = data;
+  }
+  const base = CAT.filter(m => !m.propia_de).sort((x, y) => x.id - y.id);
+  if (!FM) FM = new Set([...base.filter(m => m.estilo === 'Fúnebre').slice(0, 10), ...base.filter(m => m.estilo !== 'Fúnebre').slice(0, 10)].map(m => m.id));
   const min = P.min_musicos, pr = P.precio_musico + P.precio_uniforme;
   app.innerHTML = `<header class="top"><div><h1>Funda tu banda</h1><small>Solo se hace una vez</small></div></header><main>
   <section><h2>Nombre</h2>
@@ -194,26 +202,41 @@ function vistaCrear() {
   <div class="lbl">Así se llamará tu banda</div><div id="prev" class="prev"></div>
   <p class="nota">Solo da realismo al nombre: no influye en el juego.</p></section>
   <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${F.esc === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}" aria-pressed="${F.esc === i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div></section>
+  <section><h2>Marchas iniciales</h2><p class="nota" style="margin:0 0 8px">Elige exactamente 20 marchas para empezar. Más adelante podrás montar más, hasta ${P.max_repertorio || 80}. <b id="mc"></b></p>
+  <div class="tabs3" id="mfl" style="margin-top:0">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, n]) => `<button data-mf="${k}" class="${FMF === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+  <div id="ml" class="mlist"></div></section>
   <section><h2>Plantilla inicial</h2><p class="nota" style="margin:0 0 4px">Mínimo ${min} músicos. Cada uno cuesta ${eur(pr)} con su uniforme. Cornetas: máximo ${tope('cornetas')}. Percusión: máximo ${tope('percusion')} (dos cajas, bombo y platillo).</p>
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b><label for="s_${k}" style="margin:0;font-size:16px">${n}${tope(k) < Infinity ? ` <small style="color:var(--gris);font-weight:600">(máx. ${tope(k)})</small>` : ''}</label></b><input id="s_${k}" type="number" min="0" ${tope(k) < Infinity ? `max="${tope(k)}"` : ''} value="${DEF[k]}" inputmode="numeric" data-s="${k}"></div>`).join('')}</section>
   <section style="border:2px solid var(--oro)"><div class="res" id="res"></div></section>
   <p id="aviso" class="aviso" hidden></p><button id="go" class="fund">Fundar banda</button></main>`;
+  const pintaM = () => {
+    const l = base.filter(m => FMF === 'todas' || (FMF === 'fun' ? m.estilo === 'Fúnebre' : m.estilo !== 'Fúnebre')).sort((x, y) => x.titulo.localeCompare(y.titulo, 'es'));
+    document.getElementById('ml').innerHTML = l.map(m => `<label class="mrow"><input type="checkbox" data-m="${m.id}" ${FM.has(m.id) ? 'checked' : ''}><span><b>${h(m.titulo)}</b><small>${h(m.compositor || '')}</small></span><span class="pill ${m.estilo === 'Fúnebre' ? 'p2' : ''}">${m.estilo}</span></label>`).join('');
+    document.querySelectorAll('[data-m]').forEach(c => c.onchange = () => {
+      const id = +c.dataset.m;
+      if (c.checked) { if (FM.size >= 20) { c.checked = false; return aviso('Ya tienes 20. Quita alguna para elegir otra.'); } FM.add(id); } else FM.delete(id);
+      calc();
+    });
+  };
+  app.querySelectorAll('[data-mf]').forEach(b => b.onclick = () => { FMF = b.dataset.mf; app.querySelectorAll('[data-mf]').forEach(x => x.classList.toggle('on', x === b)); pintaM(); });
   const ins = [...app.querySelectorAll('[data-s]')], num = i => Math.min(tope(i.dataset.s), Math.max(0, parseInt(i.value) || 0));
   const calc = () => {
     const n = ins.reduce((a, i) => a + num(i), 0), c = n * pr;
     document.getElementById('prev').innerHTML = h(nombreFinal()) || `<span class="ph">${h(F.tipo)} «Tu nombre»</span>`;
     document.getElementById('res').innerHTML = `<div><span class="num">${n}</span><small>músicos</small></div><div><span class="num">${eur(c)}</span><small>coste</small></div><div><span class="num">${eur(P.dinero_inicial - c)}</span><small>te quedan</small></div>`;
-    document.getElementById('go').disabled = !(F.nombre.trim().length >= 2 && n >= min && c <= P.dinero_inicial);
+    const mc = document.getElementById('mc'); mc.textContent = `Llevas ${FM.size} de 20.`; mc.style.color = FM.size === 20 ? '#1d6236' : '#8a1c10';
+    document.getElementById('go').disabled = !(F.nombre.trim().length >= 2 && n >= min && c <= P.dinero_inicial && FM.size === 20);
   };
   const marcar = (sel, b) => app.querySelectorAll(sel).forEach(x => { const on = x === b; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
   app.querySelectorAll('[data-tipo]').forEach(b => b.onclick = () => { F.tipo = b.dataset.tipo; marcar('[data-tipo]', b); calc(); });
   app.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { F.esc = +b.dataset.e; marcar('[data-e]', b); });
   document.getElementById('nb').oninput = e => { F.nombre = e.target.value; calc(); };
   document.getElementById('pr').oninput = e => { F.proc = e.target.value; calc(); };
-  ins.forEach(i => i.oninput = calc); calc();
+  ins.forEach(i => i.oninput = calc); pintaM(); calc();
   document.getElementById('go').onclick = async () => {
     const a = {p_tipo: F.tipo, p_nombre: F.nombre, p_procedencia: F.proc, p_escudo: F.esc};
     ins.forEach(i => a['p_' + i.dataset.s] = num(i));
+    a.p_marchas = [...FM];
     const {error} = await sb.rpc('crear_banda', a);
     if (error) return aviso(error.message.includes('duplicate') ? 'Ese nombre de banda ya está cogido.' : error.message);
     init();
