@@ -86,6 +86,7 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .mini{min-width:44px;background:var(--oro2);color:var(--v);font-size:13px;padding:0 12px}.mini.sel{background:var(--v);color:var(--oro2)}.mini.off{background:var(--lin);color:var(--gris)}
 .hq{background:none;color:inherit;display:flex;align-items:center;gap:14px;padding:0;text-align:left;min-height:0;flex:1;min-width:0}.hq div{min-width:0}
 .rank li[data-id]{cursor:pointer}
+.inv{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;background:#fff;color:var(--tinta);border:2px solid var(--lin);border-radius:14px;padding:10px 14px;margin-top:8px;height:auto;min-height:56px}.inv small{display:block;color:var(--gris);font-weight:600}.inv.on{border-color:var(--v);background:#efe6f7}
 </style>
 </head>
 <body>
@@ -204,7 +205,7 @@ function vistaApp() {
   document.getElementById('hq').onclick = () => { SUB = {v: 'mibanda'}; vistaApp(); };
   window.scrollTo(0, 0);
   document.getElementById('salir').onclick = async () => { await sb.auth.signOut(); B = null; vistaAuth(false); };
-  (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking}[tab])();
+  (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico, componer: pComponer}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking}[tab])();
 }
 
 async function pInicio() {
@@ -240,8 +241,9 @@ function pTienda() {
   v.innerHTML = `<section><h2>Músicos</h2><p class="nota" style="margin:0">Cada músico cuesta ${eur(pr)} con su uniforme. Cada compra gasta 1 acción (te quedan ${B.acciones}).</p>
   <p class="nota" style="margin:4px 0 4px">Plantilla: ${n0} de ${mx} (máximo de tu nivel).</p>
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${E.fase !== 'ensayo' || B.acciones < 1 || B.dinero < pr * c || n0 + c > mx || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
-  <section><h2>Marchas</h2><p class="nota" style="margin:0">Tienes ${(B.repertorio || []).length} de ${P.max_repertorio || 80} marchas. Cada una cuesta ${eur(P.precio_montaje || 150)} y con 1 acción montas hasta ${P.montajes_por_accion || 2}.</p><button class="of" id="irm">Ver y montar marchas</button></section>
+  <section><h2>Marchas</h2><p class="nota" style="margin:0">Tienes ${(B.repertorio || []).length} de ${P.max_repertorio || 80} marchas. Cada una cuesta ${eur(P.precio_montaje || 150)} y con 1 acción montas hasta ${P.montajes_por_accion || 2}.</p><button class="of" id="irm">Ver y montar marchas</button><button class="of2" id="irc">Componer una marcha</button></section>
   <section><h2>Próximamente</h2><p class="nota" style="margin:0">El banderín y el disco llegarán con la temporada. El uniforme y el montaje de marchas están en Mi banda (toca el nombre de tu banda arriba).</p></section>`;
+  document.getElementById('irc').onclick = () => { MBACK = 'tienda'; SUB = {v: 'componer'}; vistaApp(); };
   document.getElementById('irm').onclick = () => { MS = new Set(); MBACK = 'tienda'; SUB = {v: 'montaje'}; vistaApp(); };
   v.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
     const {error} = await sb.rpc('comprar_musicos', {p_seccion: b.dataset.k, p_cantidad: +b.dataset.c});
@@ -619,7 +621,7 @@ function pMiBanda() {
   <p class="nota">${nuevoModelo ? `Estrenar este modelo cuesta ${eur(coste)} (${eur(P.precio_uniforme)} por músico).` : 'Cambiar solo los colores es gratis.'} Los demás jugadores ven tu uniforme en tu perfil.</p>
   <button class="of" id="gu" ${nuevoModelo && coste > B.dinero ? 'disabled' : ''}>Guardar uniforme${coste ? ' (' + eur(coste) + ')' : ''}</button></section>
   <section><h2>Repertorio</h2><div class="fila" style="padding-top:0"><div style="flex:1"><b style="display:block">${nm} de ${MAXREP()} marchas</b><small style="color:var(--gris)">${np} propias · el repertorio admite como máximo ${MAXREP()}</small></div></div>
-  <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" disabled>Componer una marcha (próximamente)</button></section>`;
+  <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" id="cm">Componer una marcha</button></section>`;
   const redo = () => { pMiBanda(); };
   v.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; FN.tipo = b.dataset.t; redo(); });
   const pv = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; document.getElementById('pv').textContent = full(); document.getElementById('gn').disabled = ya || !full() || full() === B.nombre; };
@@ -643,6 +645,7 @@ function pMiBanda() {
     if (error) return aviso(error.message);
     U = null; await init();
   };
+  document.getElementById('cm').onclick = () => { MBACK = 'mibanda'; volver({v: 'componer'}); };
   document.getElementById('mm').onclick = () => { MS = new Set(); MBACK = 'mibanda'; volver({v: 'montaje'}); };
   const mapa = {ed: U}; [1, 2, 3].forEach(m => mapa['m' + m] = Object.assign({}, U, {modelo: m, gorra: null}));
   pintarUnis(mapa, v);
@@ -659,7 +662,7 @@ async function pMontaje() {
   }
   const mias = new Set((B.repertorio || []).map(r => r.marcha_id)), nrep = mias.size, max = MAXREP(), por = P.montajes_por_accion || 2, pr = P.precio_montaje || 150;
   const ens = E.fase === 'ensayo', n = MS.size, libres = max - nrep;
-  const base = CAT.filter(m => MT === 'montar' ? !m.propia_de : mias.has(m.id));
+  const base = CAT.filter(m => MT === 'montar' ? !m.propia_de : MT === 'pro' ? mias.has(m.id) && m.propia_de : mias.has(m.id));
   const lista = base.filter(m => MF === 'todas' || (MF === 'fun' ? m.estilo === 'Fúnebre' : m.estilo === 'Alegre'));
   const fila = m => {
     const tengo = mias.has(m.id), sel = MS.has(m.id);
@@ -668,9 +671,9 @@ async function pMontaje() {
   };
   v.innerHTML = `<section style="background:linear-gradient(160deg,#2a1238,#4a2466);color:#fff"><div class="res"><div><span class="num" style="color:var(--oro2)">${nrep}</span><small style="color:#d8c9e3">marchas en repertorio</small></div><div><span class="num" style="color:var(--oro2)">${max}</span><small style="color:#d8c9e3">máximo en repertorio</small></div></div>
   <p class="nota" style="color:#d8c9e3;margin-top:10px">Cada marcha cuesta ${eur(pr)} y con 1 acción montas hasta ${por}. Solo en día de ensayo (te quedan ${B.acciones} acciones).</p></section>
-  <div class="tabs3"><button class="${MT === 'montar' ? 'on' : ''}" data-mt="montar">Montar</button><button class="${MT === 'mi' ? 'on' : ''}" data-mt="mi">Mi repertorio</button></div>
+  <div class="tabs3"><button class="${MT === 'montar' ? 'on' : ''}" data-mt="montar">Montar</button><button class="${MT === 'mi' ? 'on' : ''}" data-mt="mi">Mi repertorio</button><button class="${MT === 'pro' ? 'on' : ''}" data-mt="pro">Propias</button></div>
   <section><div class="bt" style="margin-bottom:8px">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, t]) => `<button class="seg ${MF === k ? 'on' : ''}" data-f="${k}">${t}</button>`).join('')}</div>
-  ${lista.map(fila).join('') || '<p class="nota">No hay marchas.</p>'}
+  ${lista.map(fila).join('') || (MT === 'pro' ? '<p class="nota">Todavía no has compuesto ninguna marcha.</p>' : '<p class="nota">No hay marchas.</p>')}
   <p class="nota">${CAT.filter(m => !m.propia_de).length} marchas en el catálogo · te caben ${libres} más · máximo ${por} por acción</p></section>
   <button class="of2" id="vb">${MBACK === 'tienda' ? 'Volver a la Tienda' : 'Volver a Mi banda'}</button>
   ${MT === 'montar' ? `<div class="barra-fija"><button class="of" id="mn" ${!n || !ens || B.acciones < 1 || B.dinero < n * pr || n > libres ? 'disabled' : ''}>${n ? `Montar ${n} marcha${n > 1 ? 's' : ''} (1 acción · ${eur(n * pr)})` : 'Elige hasta ' + por + ' marchas'}</button></div>` : ''}`;
@@ -689,6 +692,45 @@ async function pMontaje() {
     MS = new Set(); CAT = null; await init();
   };
   if (!ens) aviso('Hoy es día de procesiones: solo puedes montar marchas en día de ensayo.');
+}
+
+// ======== Composición ========
+let CF = {titulo: '', comp: '', estilo: '', ded: '', inv: 'cuidada'};
+const ESTILOS = {fun: ['Lenta', 'Lenta con cornetas', 'Fúnebre'], ale: ['Con cornetas', 'De procesión']};
+const INVS = [['boceto', 'Boceto', 'compo_boceto', 'Calidad 40-60'], ['cuidada', 'Cuidada', 'compo_cuidada', 'Calidad 60-80'], ['magistral', 'Magistral', 'compo_magistral', 'Calidad 80-100']];
+function pComponer() {
+  const v = document.getElementById('vista'), acc = P.compo_acciones || 4, inv = INVS.find(i => i[0] === CF.inv), coste = P[inv[2]];
+  const nrep = (B.repertorio || []).length, ens = E.fase === 'ensayo';
+  const ok = CF.titulo.trim().length >= 2 && CF.comp.trim().length >= 2 && CF.estilo && ens && B.acciones >= acc && B.dinero >= coste && nrep < MAXREP();
+  const fun = ESTILOS.fun.includes(CF.estilo), corte = !CF.estilo ? '' : fun ? 'Corte fúnebre' : 'Corte alegre';
+  const chip = e => `<button class="seg ${CF.estilo === e ? 'on' : ''}" data-e="${e}" style="min-height:44px">${e}</button>`;
+  v.innerHTML = `<section><h2>Componer una marcha</h2><p class="nota" style="margin:0">Crea una marcha propia para tu banda. Solo en día de ensayo.</p>
+  <label for="ct">Título</label><input id="ct" maxlength="50" value="${h(CF.titulo)}"><label for="cc">Compositor</label><input id="cc" maxlength="50" value="${h(CF.comp)}">
+  <div class="lbl">Estilo</div><p class="nota" style="margin:0 0 6px">De corte fúnebre</p><div class="bt" style="flex-wrap:wrap">${ESTILOS.fun.map(chip).join('')}</div>
+  <p class="nota" style="margin:10px 0 6px">De corte alegre</p><div class="bt" style="flex-wrap:wrap">${ESTILOS.ale.map(chip).join('')}</div>
+  <label for="cd">Dedicatoria <span class="op">(opcional)</span></label><input id="cd" maxlength="60" value="${h(CF.ded)}"><p class="nota" style="text-align:right" id="cn">${CF.ded.length} de 60 caracteres</p></section>
+  <section><h2>Inversión</h2><p class="nota" style="margin:0 0 6px">Más inversión, mejor marcha. Todas cuestan ${acc} acciones.</p>
+  ${INVS.map(([k, n, p, q]) => `<button class="inv ${CF.inv === k ? 'on' : ''}" data-i="${k}"><span><b>${n}</b><small>${q}</small></span><b>${eur(P[p])}</b></button>`).join('')}</section>
+  <section><div class="tag" style="font-weight:800;font-size:12px;text-transform:uppercase;color:var(--v2)">Vista previa</div><b style="font:700 22px 'Cormorant Garamond',serif">«${h(CF.titulo.trim() || 'Título de la marcha')}»</b>
+  <p class="nota" style="margin:2px 0">${h(CF.comp.trim() || 'Compositor')} · ${CF.estilo ? 'Marcha ' + CF.estilo.toLowerCase() : 'Elige un estilo'}${CF.ded.trim() ? '<br>' + h(CF.ded.trim()) : ''}</p>
+  ${corte ? `<span class="pill p2">${corte}</span> ` : ''}<span class="pill" style="background:var(--oro2)">${inv[3].replace('Calidad', 'Calidad esperada')}</span></section>
+  <section><p class="nota" style="margin:0"><b>Efecto en el juego:</b> las marchas lentas cuentan como fúnebres para tu repertorio y las de cornetas o de procesión como alegres. Las propias dan un pequeño extra de satisfacción cuando salen en la crónica, más cuanto mayor sea su calidad. Otras bandas no pueden montarlas. Al estrenarla sale una noticia para todos.</p></section>
+  <button class="of2" id="vb">${MBACK === 'tienda' ? 'Volver a la Tienda' : 'Volver a Mi banda'}</button>
+  <div class="barra-fija"><button class="of" id="cg" ${ok ? '' : 'disabled'}>Componer (${acc} acciones · ${eur(coste)})</button></div>`;
+  const leer = () => { CF.titulo = document.getElementById('ct').value; CF.comp = document.getElementById('cc').value; CF.ded = document.getElementById('cd').value; };
+  ['ct', 'cc', 'cd'].forEach(i => document.getElementById(i).onchange = () => { leer(); pComponer(); });
+  document.getElementById('cd').oninput = () => { document.getElementById('cn').textContent = document.getElementById('cd').value.length + ' de 60 caracteres'; };
+  v.querySelectorAll('[data-e]').forEach(b => b.onclick = () => { leer(); CF.estilo = b.dataset.e; pComponer(); });
+  v.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { leer(); CF.inv = b.dataset.i; pComponer(); });
+  document.getElementById('vb').onclick = () => { if (MBACK === 'tienda') { tab = 'tienda'; volver(null); } else volver({v: 'mibanda'}); };
+  document.getElementById('cg').onclick = async () => {
+    leer(); const g = document.getElementById('cg'); g.disabled = true;
+    const {data, error} = await sb.rpc('componer_marcha', {p_titulo: CF.titulo, p_compositor: CF.comp, p_estilo: CF.estilo, p_dedicatoria: CF.ded, p_inversion: CF.inv});
+    if (error) { g.disabled = false; return aviso(error.message); }
+    const t = CF.titulo.trim(); CF = {titulo: '', comp: '', estilo: '', ded: '', inv: 'cuidada'}; CAT = null;
+    ov(`<h2>¡Marcha compuesta!</h2><p>«${h(t)}» ya está en tu repertorio con una calidad de ${data.calidad} sobre 100. Todos verán la noticia del estreno.</p><button class="b2" id="ok">Continuar</button>`);
+    document.getElementById('ok').onclick = () => { document.getElementById('ov').remove(); SUB = {v: 'montaje'}; MT = 'pro'; init(); };
+  };
 }
 
 init();
