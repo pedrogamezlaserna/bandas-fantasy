@@ -150,6 +150,7 @@ function vistaAuth(reg) {
   <p class="lema">Crea tu banda, gana contratos y compite por la Semana Santa.</p>
   <label for="u">Usuario</label><input id="u" autocomplete="username" autocapitalize="none">
   <label for="p">Contraseña</label><input id="p" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}">
+  ${reg ? '<label for="co">Correo electrónico</label><input id="co" type="email" autocomplete="email" autocapitalize="none"><p class="nota" style="margin:4px 0 0">Solo lo ve el administrador, para saber quién eres. No se envía ningún correo.</p>' : ''}
   <p id="aviso" class="aviso" hidden></p>
   <button id="go">${reg ? 'Crear cuenta' : 'Entrar'}</button>
   <button class="link" id="alt">${reg ? 'Ya tengo cuenta' : 'Quiero registrarme'}</button></main>`;
@@ -162,6 +163,11 @@ async function entrar(reg) {
   if (!/^[a-z0-9_]{3,20}$/.test(u)) return aviso('Usuario: de 3 a 20 caracteres, solo letras sin tilde, números o guion bajo.');
   if (p.length < 6) return aviso('La contraseña necesita al menos 6 caracteres.');
   const cred = {email: u + EM, password: p};
+  if (reg) {
+    const co = document.getElementById('co').value.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(co)) return aviso('Escribe un correo electrónico válido.');
+    cred.options = {data: {correo: co}};
+  }
   const {data, error} = reg ? await sb.auth.signUp(cred) : await sb.auth.signInWithPassword(cred);
   if (error) return aviso(traducir(error.message));
   if (reg && !data.session) return aviso('Cuenta creada, pero Supabase pide confirmar el correo.');
@@ -833,7 +839,7 @@ async function pAdmin() {
   <div class="fila2"><span>Día del juego</span><span>${est.dia} (${est.fase === 'ensayo' ? 'ensayo' : 'Semana Santa'})</span></div>
   <div class="fila2"><span>Temporada</span><span>${est.temporada}</span></div>
   <div class="fila2"><span>Cuentas / bandas</span><span>${est.cuentas} / ${est.bandas}</span></div></section>
-  <section><h2>Jugadores</h2>${js.map(j => `<div class="avj" data-j="${j.id}"><div class="fila" style="margin:0"><div style="flex:1;min-width:0"><b>${h(j.usuario)}</b>${j.admin ? ' <span class="pill" style="background:var(--oro2)">Admin</span>' : ''}<small style="display:block;color:var(--gris)">${j.banda ? h(j.banda) + ' · nivel ' + j.nivel + ' · ' + eur(j.dinero) + ' · ' + j.acciones + ' acciones' : 'Sin banda'}</small><small style="display:block;color:var(--gris)">Última conexión: ${f(j.ultima)}</small></div></div>
+  <section><h2>Jugadores</h2>${js.map(j => `<div class="avj" data-j="${j.id}"><div class="fila" style="margin:0"><div style="flex:1;min-width:0"><b>${h(j.usuario)}</b>${j.admin ? ' <span class="pill" style="background:var(--oro2)">Admin</span>' : ''}<small style="display:block;color:var(--gris)">${j.banda ? h(j.banda) + ' · nivel ' + j.nivel + ' · ' + eur(j.dinero) + ' · ' + j.acciones + ' acciones' : 'Sin banda'}</small><small style="display:block;color:var(--gris)">${j.correo ? h(j.correo) : 'Sin correo'} · Última conexión: ${f(j.ultima)}</small></div></div>
   <div class="ajb" hidden>
     <label>Nueva contraseña</label><input class="ac" placeholder="Mínimo 6 caracteres"><button class="b3x" data-a="clave">Cambiar contraseña</button>
     ${j.banda ? `<label>Dar (o quitar con signo −)</label><div style="display:flex;gap:8px"><input class="ad" type="number" placeholder="Dinero"><input class="aa" type="number" placeholder="Acciones"></div><button class="b3x" data-a="dar">Aplicar</button><button class="b3x" data-a="banda">Reiniciar su banda</button>` : ''}
