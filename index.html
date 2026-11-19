@@ -117,7 +117,7 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .ttl{position:absolute;left:0;right:0;top:10px;text-align:center;font:700 20px Georgia,serif;color:var(--oro2);z-index:5}
 .llu{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;animation:llu .5s linear infinite}@keyframes llu{to{transform:translate(-6px,16px)}}
 @media (prefers-reduced-motion:reduce){.bob,.swy,.nt,.llu{animation:none}}
-.mlist{max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--lin);border-radius:12px}.mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--lin);margin:0;cursor:pointer}.mrow input{width:22px;height:22px;flex:none;margin:0;padding:0;accent-color:var(--v)}.mrow span:nth-of-type(1){flex:1;min-width:0}.mrow small{display:block;color:var(--gris);font-weight:400}.avj{border-bottom:1px solid var(--lin);padding:10px 0;cursor:pointer}.ajb{margin-top:8px;cursor:auto}.b3x{display:block;width:100%;margin-top:8px;min-height:44px;background:var(--lin);color:var(--v);border-radius:12px;font-weight:700}.b3x.rojo{background:#fbe9e7;color:#8a1c10}.opt2{display:flex;gap:10px;align-items:center;margin-top:12px}.opt2 input{width:22px;height:22px;margin:0;flex:none}.paper{background:#f6efd9!important;color:#1e1226;border:1px solid #cdbf93;box-shadow:inset 0 0 0 4px #f6efd9,inset 0 0 0 5px #cdbf93}.paper .mast{text-align:center;border-bottom:3px double #1e1226;padding-bottom:8px;margin-bottom:6px}.paper .mast small{letter-spacing:.2em;text-transform:uppercase;font-size:10px;color:#6a5f73}.paper .mast h2{font-family:Georgia,'Times New Roman',serif;font-size:24px;margin:2px 0;color:#1e1226;font-weight:900}.mast2{display:flex;justify-content:space-between;font-size:11px;border-top:1px solid #1e1226;margin-top:6px;padding-top:4px;text-transform:uppercase;letter-spacing:.08em}.paper article{padding:10px 0;border-bottom:1px solid #cdbf93}.paper h3{font-family:Georgia,serif;font-size:16px;line-height:1.25;margin:0 0 4px;color:#1e1226}.paper .nota1 h3{font-size:22px}.paper article p{margin:0;font-size:13.5px;line-height:1.45;color:#3a2f44;max-width:none}.paper .nota1 p{column-count:1}.leer{display:block;width:100%;margin-top:12px;min-height:44px;background:#1e1226;color:#f6efd9;border-radius:6px;font-weight:700;font-family:Georgia,serif}.mj .paper{padding:16px;border-radius:12px}</style>
+.mlist{max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--lin);border-radius:12px}.mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--lin);margin:0;cursor:pointer}.mrow input{width:22px;height:22px;flex:none;margin:0;padding:0;accent-color:var(--v)}.mrow span:nth-of-type(1){flex:1;min-width:0}.mrow small{display:block;color:var(--gris);font-weight:400}.avj{border-bottom:1px solid var(--lin);padding:10px 0;cursor:pointer}.ajb{margin-top:8px;cursor:auto}.b3x{display:block;width:100%;margin-top:8px;min-height:44px;background:var(--lin);color:var(--v);border-radius:12px;font-weight:700}.b3x.rojo{background:#fbe9e7;color:#8a1c10}.opt2{display:flex;gap:10px;align-items:center;margin-top:12px}.opt2 input{width:22px;height:22px;margin:0;flex:none}.paper{background:#f6efd9!important;color:#1e1226;border:1px solid #cdbf93;box-shadow:inset 0 0 0 4px #f6efd9,inset 0 0 0 5px #cdbf93}.paper .mast{text-align:center;border-bottom:3px double #1e1226;padding-bottom:8px;margin-bottom:6px}.paper .mast small{letter-spacing:.2em;text-transform:uppercase;font-size:10px;color:#6a5f73}.paper .mast h2{font-family:Georgia,'Times New Roman',serif;font-size:24px;margin:2px 0;color:#1e1226;font-weight:900}.mast2{display:flex;justify-content:space-between;font-size:11px;border-top:1px solid #1e1226;margin-top:6px;padding-top:4px;text-transform:uppercase;letter-spacing:.08em}.paper article{padding:10px 0;border-bottom:1px solid #cdbf93}.paper h3{font-family:Georgia,serif;font-size:16px;line-height:1.25;margin:0 0 4px;color:#1e1226}.paper .nota1 h3{font-size:22px}.paper article p{margin:0;font-size:13.5px;line-height:1.45;color:#3a2f44;max-width:none}.paper .nota1 p{column-count:1}.leer{display:block;width:100%;margin-top:12px;min-height:44px;background:#1e1226;color:#f6efd9;border-radius:6px;font-weight:700;font-family:Georgia,serif}.mj .paper{padding:16px;border-radius:12px}.dots{display:flex;gap:8px;justify-content:center}.dots span{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3)}.dots span.on{background:var(--oro)}</style>
 </head>
 <body>
 <div id="app"></div>
@@ -256,8 +256,43 @@ async function vistaCrear() {
     a.p_marchas = [...FM];
     const {error} = await sb.rpc('crear_banda', a);
     if (error) return aviso(error.message.includes('duplicate') ? 'Ese nombre de banda ya está cogido.' : error.message);
-    init();
+    FM = null; await init(); reglas(true);
   };
+}
+
+
+// ======== Reglas / tutorial ========
+function reglas(primera) {
+  const ic2 = d => `<svg viewBox="0 0 64 64" width="84" height="84" fill="none" stroke="#e8b84a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const pg = [
+    ['El calendario', ic2('<rect x="10" y="14" width="44" height="40" rx="5"/><path d="M10 26h44M22 8v10M42 8v10M22 36h6M36 36h6M22 46h6"/>'),
+     `Los días se alternan: un día es de <b>ensayo</b> y el siguiente de <b>Semana Santa</b>. Cada pareja de días es una temporada.<br><br>El juego sigue su ritmo aunque no entres: al cierre de cada día (a las 00:00) se resuelve todo.`],
+    ['Los ensayos', ic2('<circle cx="32" cy="32" r="22"/><path d="M32 20v12l9 6"/>'),
+     `En los días de ensayo tienes <b>${P.acciones_dia || 6} acciones</b>. Cada ensayo gasta una y te pone a prueba con un minijuego: el pulso, la afinación, marcar el paso o repetir la frase. A veces surge un imprevisto.<br><br>Ganas experiencia (xp) y subes de nivel. Cuanto más ensayes antes de la Semana Santa, mejor saldrá la actuación.`],
+    ['Los contratos', ic2('<path d="M18 6h22l10 10v42H18z"/><path d="M40 6v10h10M24 28h20M24 38h20M24 48h12"/>'),
+     `Los días de ensayo presentas <b>ofertas</b> a las hermandades, hasta ${P.max_ofertas || 5} cada vez. Puedes mejorar tu oferta con una rebaja, un regalo o una saya, y ordenarlas por prioridad.<br><br>Al cierre del día las hermandades eligen. Los contratos ganados se renuevan por años, y cada hermandad paga según su categoría.`],
+    ['La Semana Santa', ic2('<path d="M20 44a10 10 0 010-20 14 14 0 0126-4 10 10 0 012 24z"/><path d="M24 52l-3 6M34 52l-3 6M44 52l-3 6"/>'),
+     `En los días de Semana Santa tocas tus jornadas. Mira la <b>previsión de lluvia</b> y decide: salir, recogerte antes, refugiarte o no salir.<br><br>Después ves la crónica: salida, recorrido, carrera oficial y recogida. Lo que pase afecta a la satisfacción de la hermandad, a tu cobro y a tu prestigio. Si un día no entras, se resuelve solo y cobras la mitad.`],
+    ['Tu banda', ic2('<circle cx="32" cy="22" r="10"/><path d="M12 56c2-14 10-20 20-20s18 6 20 20z"/>'),
+     `Compra músicos y uniformes (${eur((P.precio_musico || 0) + (P.precio_uniforme || 0))} cada uno con su uniforme) y cambia el uniforme y el escudo de tu banda. Tu plantilla máxima crece con el nivel.<br><br>Tu repertorio puede tener hasta <b>${P.max_repertorio || 80} marchas</b>. Monta más desde la tienda o compón las tuyas: las marchas propias dan un extra.`],
+    ['Dinero y prestigio', ic2('<circle cx="32" cy="32" r="22"/><path d="M40 23a11 11 0 100 18M22 28h16M22 36h16"/>'),
+     `Ganas dinero con los contratos y lo gastas en músicos, uniformes, marchas y refuerzos. Si te quedas sin dinero, no podrás reforzar la banda.<br><br>El <b>prestigio</b> y el nivel te colocan en el ranking de bandas. Los jugadores y las bandas ficticias compiten por los mismos contratos: ¡a por ellos!`]
+  ];
+  let i = 0;
+  const pinta = () => {
+    const [t, icono, txt] = pg[i], ult = i === pg.length - 1;
+    ov(`<div class="mj"><small style="color:var(--oro2);letter-spacing:.14em;text-transform:uppercase">${primera ? 'Bienvenido a Bandas Fantasy' : 'Reglas'} · ${i + 1} de ${pg.length}</small>
+    <div style="margin:0 auto">${icono}</div><h2>${t}</h2><div class="avo" style="font-size:15px;line-height:1.5">${txt}</div>
+    <div class="dots">${pg.map((_, k) => `<span class="${k === i ? 'on' : ''}"></span>`).join('')}</div>
+    <button class="b2" id="rn">${ult ? (primera ? '¡A ensayar!' : 'Cerrar') : 'Siguiente'}</button>
+    ${i > 0 ? '<button class="b3" id="rp" style="text-align:center;min-height:44px">Anterior</button>' : ''}
+    ${!ult ? '<button class="b3" id="rx" style="text-align:center;min-height:44px">Saltar</button>' : ''}</div>`);
+    const cierra = () => document.getElementById('ov').remove();
+    document.getElementById('rn').onclick = () => ult ? cierra() : (i++, pinta());
+    const rp = document.getElementById('rp'); if (rp) rp.onclick = () => { i--; pinta(); };
+    const rx = document.getElementById('rx'); if (rx) rx.onclick = cierra;
+  };
+  pinta();
 }
 
 function perfil() {
@@ -915,8 +950,10 @@ function pMiBanda() {
   <button class="of" id="gu" ${nuevoModelo && coste > B.dinero ? 'disabled' : ''}>Guardar uniforme${coste ? ' (' + eur(coste) + ')' : ''}</button></section>
   <section><h2>Repertorio</h2><div class="fila" style="padding-top:0"><div style="flex:1"><b style="display:block">${nm} de ${MAXREP()} marchas</b><small style="color:var(--gris)">${np} propias · el repertorio admite como máximo ${MAXREP()}</small></div></div>
   <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" id="cm">Componer una marcha</button></section>
+  <section><h2>Reglas</h2><p class="nota" style="margin:0 0 8px">Un repaso rápido de cómo funciona el juego.</p><button class="of2" id="vrg">Ver las reglas</button></section>
   <section><h2>Contraseña</h2><label for="cp1">Nueva contraseña</label><input id="cp1" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres"><label for="cp2">Repítela</label><input id="cp2" type="password" autocomplete="new-password"><button class="of2" id="cpb">Cambiar contraseña</button></section>`;
   const redo = () => { pMiBanda(); };
+  document.getElementById('vrg').onclick = () => reglas(false);
   document.getElementById('cpb').onclick = async () => { const r = await cambiarClave(document.getElementById('cp1').value, document.getElementById('cp2').value); if (r) return aviso(r); aviso(''); document.getElementById('cp1').value = document.getElementById('cp2').value = ''; alert('Contraseña cambiada.'); };
   v.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; FN.tipo = b.dataset.t; redo(); });
   const pv = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; document.getElementById('pv').textContent = full(); document.getElementById('gn').disabled = ya || !full() || full() === B.nombre; };
