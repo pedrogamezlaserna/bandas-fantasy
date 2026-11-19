@@ -87,6 +87,36 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .hq{background:none;color:inherit;display:flex;align-items:center;gap:14px;padding:0;text-align:left;min-height:0;flex:1;min-width:0}.hq div{min-width:0}
 .rank li[data-id]{cursor:pointer}
 .inv{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;background:#fff;color:var(--tinta);border:2px solid var(--lin);border-radius:14px;padding:10px 14px;margin-top:8px;height:auto;min-height:56px}.inv small{display:block;color:var(--gris);font-weight:600}.inv.on{border-color:var(--v);background:#efe6f7}
+
+.mj{width:100%;max-width:380px;display:flex;flex-direction:column;gap:12px;align-items:stretch}.mj h2{font-size:30px}.mj p{margin:0 auto}
+.mjb{display:flex;gap:8px}.mjb .b3{min-height:44px;text-align:center;font-size:13px;padding:8px}
+.stg{position:relative;width:100%;height:300px;border-radius:16px;overflow:hidden;flex:none;border:2px solid rgba(232,184,74,.5)}
+.stg.room{height:300px}.bgs{position:absolute;inset:0;width:100%;height:100%}
+.mf{position:absolute;aspect-ratio:400/664}.mf canvas{width:100%;height:auto;display:block}.mf svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.bob{animation:bob .7s ease-in-out infinite alternate}@keyframes bob{to{transform:translateY(-5px)}}
+.swy{animation:bob .36s ease-in-out infinite alternate}
+.mf .mz,.mf .dr{transform-box:view-box}.mf .mz{transform-origin:306px 300px}.mf .dr{transform-origin:200px 360px}
+.mf.hit .mz{animation:mzh .22s ease-out}.mf.hit .dr{animation:drh .22s ease-out}
+@keyframes mzh{0%{transform:rotate(0)}35%{transform:rotate(-32deg)}100%{transform:rotate(0)}}@keyframes drh{0%{transform:scale(1)}30%{transform:scale(1.04)}100%{transform:scale(1)}}
+.tg{position:absolute;left:50%;top:16%;width:70px;height:70px;margin:-35px 0 0 -35px;border:4px solid var(--oro2);border-radius:50%;z-index:3}
+#rs{position:absolute;inset:0;z-index:3;pointer-events:none}
+.rg2{position:absolute;left:50%;top:16%;width:70px;height:70px;margin:-35px 0 0 -35px;border:3px solid #fff;border-radius:50%;animation:rg2 1.2s linear forwards}
+@keyframes rg2{from{transform:scale(3.6);opacity:.2}to{transform:scale(1);opacity:1}}
+.fbk{position:absolute;left:14px;top:14px;text-align:left;font:700 26px Georgia,serif;color:var(--oro2);opacity:0;z-index:4;text-shadow:0 2px 6px #000}.fbk.on{opacity:1}
+.nt{position:absolute;color:var(--oro2);font-size:22px;opacity:0;animation:nt 2.4s ease-out infinite;z-index:2}@keyframes nt{0%{opacity:0;transform:translateY(0)}20%{opacity:.9}100%{opacity:0;transform:translateY(-60px)}}
+.tun{background:rgba(255,255,255,.1);border-radius:14px;padding:12px}
+.bar2{position:relative;height:30px;background:#1d1030;border-radius:8px}.zv{position:absolute;top:0;bottom:0;background:#4aa564;border-radius:6px;opacity:.9}.zy{position:absolute;top:0;bottom:0;background:#e8b84a;opacity:.45;border-radius:6px}
+.ag{position:absolute;top:-4px;width:8px;height:38px;background:#fff;border-radius:4px;box-shadow:0 0 8px #fff}
+.lb2{display:flex;justify-content:space-between;font-size:11px;opacity:.7;margin-top:4px}
+.pies{display:flex;gap:10px}.pie{flex:1;height:70px;font-size:18px;background:rgba(255,255,255,.14);color:#fff;border-radius:14px}.pie.on{background:var(--oro);color:var(--v)}
+.padg{display:grid;grid-template-columns:1fr 1fr;gap:10px}.padf{background:rgba(255,255,255,.12);border-radius:14px;padding:6px;color:#fff;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:14px;font-weight:700}.padf.on{background:var(--oro);color:var(--v)}
+.stp2{position:relative;width:98px;height:150px;overflow:hidden}.stp2 .mf{position:absolute;top:0}
+.opc{background:rgba(255,255,255,.14);color:#fff;border-radius:14px;padding:12px;text-align:left;display:block;width:100%}
+.chs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.cp{font-size:12px;font-weight:700;border-radius:999px;padding:3px 9px}.c1{background:#fbe9e7;color:#8a1c10}.c2{background:#e1f2e6;color:#1d6236}.c4{background:#efe9f3;color:#4a2466}
+.chw{position:absolute;right:8px;top:8px;background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:3px 10px;font-size:12px;z-index:5}
+.ttl{position:absolute;left:0;right:0;top:10px;text-align:center;font:700 20px Georgia,serif;color:var(--oro2);z-index:5}
+.llu{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;animation:llu .5s linear infinite}@keyframes llu{to{transform:translate(-6px,16px)}}
+@media (prefers-reduced-motion:reduce){.bob,.swy,.nt,.llu{animation:none}}
 </style>
 </head>
 <body>
@@ -445,12 +475,12 @@ function cronica(d, sig, S) {
       <div class="fila2"><span>Recogida</span><span>${hs(d.hora_recogida)} (oficial ${hs(d.hora_recogida_oficial)})</span></div>` : ''}
       ${d.auto ? '<p class="nota" style="color:#4a3a5a">Esta jornada se resolvió sola porque no te conectaste: cobraste la mitad.</p>' : ''}</div>
       ${d.decision === 'refugia' ? '<div class="avo">La vuelta es mañana temprano desde la Catedral. No gasta acciones.</div>' : ''}`;
-    else cuerpo = (d.tramos || []).filter(t => t.momento === pg).map(t => `<div class="avo"><small><b>${h(t.tramo)}</b></small><br>${h(t.texto)}<br><span class="pill" style="margin-top:6px;display:inline-block;background:${t.efecto > 0 ? '#e1f2e6' : t.efecto < 0 ? '#fbe9e7' : '#efe9f3'};color:${t.efecto > 0 ? '#1d6236' : t.efecto < 0 ? '#8a1c10' : '#4a2466'}">Satisfacción ${filaEf(t.efecto)}</span></div>`).join('');
+    else cuerpo = escenaCronica(pg, d.llueve, d.llueve ? 'Lluvia' : 'Despejado') + (d.tramos || []).filter(t => t.momento === pg).map(t => `<div class="avo"><small><b>${h(t.tramo)}</b></small><br>${h(t.texto)}<br><span class="pill" style="margin-top:6px;display:inline-block;background:${t.efecto > 0 ? '#e1f2e6' : t.efecto < 0 ? '#fbe9e7' : '#efe9f3'};color:${t.efecto > 0 ? '#1d6236' : t.efecto < 0 ? '#8a1c10' : '#4a2466'}">Satisfacción ${filaEf(t.efecto)}</span></div>`).join('');
     const tit = pg === 'fin' ? 'Jornada completada' : pg === 'nosale' ? 'No sale' : pg;
     const botones = !ultimo ? '<button class="b2" id="sig">Siguiente</button>'
       : (sig ? `<button class="b2" id="nx">Siguiente contrato (${h(sig.c.hermandades.nombre)} - ${sig.c.hermandades.jornada})</button>`
              : '<button class="b2" id="rs">Resumen de la Semana Santa</button>') + '<button class="b3" id="cl2" style="text-align:center">Cerrar</button>';
-    ov(`<h2>${tit}</h2><p>${h(d.hermandad)} · ${d.jornada}</p>${cuerpo}${botones}`);
+    const ove = ov(`<h2>${tit}</h2><p>${h(d.hermandad)} · ${d.jornada}</p>${cuerpo}${botones}`); pintaBanda(ove);
     const cerrar = () => { document.getElementById('ov').remove(); init(); };
     if (!ultimo) document.getElementById('sig').onclick = () => { i++; pintar(); };
     else {
@@ -467,43 +497,208 @@ const xpDe = n => 100 * (n - 1) ** 2;
 const ov = html => { let e = document.getElementById('ov'); if (!e) { e = document.createElement('div'); e.id = 'ov'; e.className = 'ov'; document.body.appendChild(e); } e.innerHTML = html; return e; };
 const fin = (titulo, msg) => { ov(`<h2>${titulo}</h2><p>${msg}</p><button class="b2" id="ok">Continuar</button>`); document.getElementById('ok').onclick = () => { document.getElementById('ov').remove(); init(); }; };
 
+
+// ======== Sonido y minijuegos ========
+const INSTR = {"corneta": "<g><path d=\"M205 128 L330 138\" stroke=\"#c9972c\" stroke-width=\"13\" stroke-linecap=\"round\"/><path d=\"M205 128 L330 138\" stroke=\"#f4d98c\" stroke-width=\"5\" stroke-linecap=\"round\"/><path d=\"M322 118 L384 96 L384 176 L322 150 Z\" fill=\"#e8b84a\" stroke=\"#a97d2b\" stroke-width=\"3\"/><ellipse cx=\"384\" cy=\"136\" rx=\"9\" ry=\"40\" fill=\"#f4d98c\" stroke=\"#a97d2b\" stroke-width=\"3\"/><path d=\"M250 140 q-8 40 22 44 q30 0 22 -44\" fill=\"none\" stroke=\"#c9972c\" stroke-width=\"8\"/><rect x=\"262\" y=\"124\" width=\"8\" height=\"26\" rx=\"3\" fill=\"#a97d2b\"/><rect x=\"282\" y=\"126\" width=\"8\" height=\"26\" rx=\"3\" fill=\"#a97d2b\"/><rect x=\"302\" y=\"128\" width=\"8\" height=\"26\" rx=\"3\" fill=\"#a97d2b\"/><circle cx=\"270\" cy=\"172\" r=\"15\" fill=\"#e6b896\" stroke=\"#c18f6c\" stroke-width=\"2\"/><circle cx=\"230\" cy=\"150\" r=\"13\" fill=\"#e6b896\" stroke=\"#c18f6c\" stroke-width=\"2\"/></g>", "caja": "<g><ellipse cx=\"200\" cy=\"352\" rx=\"92\" ry=\"22\" fill=\"#f1ead8\" stroke=\"#a97d2b\" stroke-width=\"5\"/><path d=\"M108 352 v70 q92 34 184 0 v-70\" fill=\"#7a1020\" stroke=\"#a97d2b\" stroke-width=\"5\"/><path d=\"M108 366 q92 30 184 0 M108 408 q92 30 184 0\" fill=\"none\" stroke=\"#e8b84a\" stroke-width=\"6\"/><path d=\"M128 372 l12 40 l12 -40\" fill=\"none\" stroke=\"#f4d98c\" stroke-width=\"3\"/><path d=\"M152 372 l12 40 l12 -40\" fill=\"none\" stroke=\"#f4d98c\" stroke-width=\"3\"/><path d=\"M176 372 l12 40 l12 -40\" fill=\"none\" stroke=\"#f4d98c\" stroke-width=\"3\"/><path d=\"M200 372 l12 40 l12 -40\" fill=\"none\" stroke=\"#f4d98c\" stroke-width=\"3\"/><path d=\"M224 372 l12 40 l12 -40\" fill=\"none\" stroke=\"#f4d98c\" stroke-width=\"3\"/><path d=\"M248 372 l12 40 l12 -40\" fill=\"none\" stroke=\"#f4d98c\" stroke-width=\"3\"/><path d=\"M272 372 l12 40 l12 -40\" fill=\"none\" stroke=\"#f4d98c\" stroke-width=\"3\"/><path d=\"M110 300 L176 340\" stroke=\"#e8dcc0\" stroke-width=\"7\" stroke-linecap=\"round\"/><path d=\"M290 300 L224 340\" stroke=\"#e8dcc0\" stroke-width=\"7\" stroke-linecap=\"round\"/><circle cx=\"108\" cy=\"298\" r=\"15\" fill=\"#e6b896\" stroke=\"#c18f6c\" stroke-width=\"2\"/><circle cx=\"292\" cy=\"298\" r=\"15\" fill=\"#e6b896\" stroke=\"#c18f6c\" stroke-width=\"2\"/></g>", "bombo_anim": "<g class=\"dr\"><circle cx=\"200\" cy=\"360\" r=\"104\" fill=\"#e8dcc0\" stroke=\"#a97d2b\" stroke-width=\"12\"/><circle cx=\"200\" cy=\"360\" r=\"80\" fill=\"none\" stroke=\"#c9b78e\" stroke-width=\"4\"/><path d=\"M96 330 q-16 50 4 100 M304 330 q16 50 -4 100\" stroke=\"#7a1020\" stroke-width=\"10\" fill=\"none\"/></g><g class=\"mz\"><path d=\"M306 296 L248 340\" stroke=\"#a97d2b\" stroke-width=\"9\" stroke-linecap=\"round\"/><circle cx=\"310\" cy=\"292\" r=\"17\" fill=\"#7a1020\"/><circle cx=\"306\" cy=\"300\" r=\"14\" fill=\"#e6b896\" stroke=\"#c18f6c\" stroke-width=\"2\"/></g><circle cx=\"98\" cy=\"330\" r=\"13\" fill=\"#e6b896\" stroke=\"#c18f6c\" stroke-width=\"2\"/>", "clarinete": "<g><path d=\"M205 126 L226 330\" stroke=\"#14141a\" stroke-width=\"16\" stroke-linecap=\"round\"/><path d=\"M205 126 L226 330\" stroke=\"#3a3a46\" stroke-width=\"4\" stroke-linecap=\"round\"/><path d=\"M219 300 L242 366 L196 366 Z\" fill=\"#14141a\"/><ellipse cx=\"219\" cy=\"366\" rx=\"25\" ry=\"8\" fill=\"#14141a\" stroke=\"#8a8a96\" stroke-width=\"3\"/><circle cx=\"208.0\" cy=\"160\" r=\"6\" fill=\"#c9c9d2\" stroke=\"#6a6a76\" stroke-width=\"2\"/><circle cx=\"211.2\" cy=\"190\" r=\"6\" fill=\"#c9c9d2\" stroke=\"#6a6a76\" stroke-width=\"2\"/><circle cx=\"214.4\" cy=\"220\" r=\"6\" fill=\"#c9c9d2\" stroke=\"#6a6a76\" stroke-width=\"2\"/><circle cx=\"217.6\" cy=\"250\" r=\"6\" fill=\"#c9c9d2\" stroke=\"#6a6a76\" stroke-width=\"2\"/><circle cx=\"220.8\" cy=\"280\" r=\"6\" fill=\"#c9c9d2\" stroke=\"#6a6a76\" stroke-width=\"2\"/><rect x=\"200\" y=\"124\" width=\"16\" height=\"10\" rx=\"3\" fill=\"#8a8a96\"/><circle cx=\"212\" cy=\"196\" r=\"13\" fill=\"#e6b896\" stroke=\"#c18f6c\" stroke-width=\"2\"/><circle cx=\"222\" cy=\"262\" r=\"13\" fill=\"#e6b896\" stroke=\"#c18f6c\" stroke-width=\"2\"/></g>"};
+let AC = null, MUTE = false, NB = null;
+try { MUTE = localStorage.getItem('bf_mute') === '1'; } catch (e) {}
+const ctxA = () => { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} return AC; };
+const ruido = c => NB || (NB = (() => { const b = c.createBuffer(1, Math.floor(c.sampleRate * .4), c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; })());
+function tono(c, tipo, f0, f1, dur, vol, lp) {
+  const o = c.createOscillator(), g = c.createGain(), t = c.currentTime; o.type = tipo; o.frequency.setValueAtTime(f0, t);
+  if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  let n = o; if (lp) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = lp; o.connect(f); n = f; }
+  n.connect(g); g.connect(c.destination); o.start(t); o.stop(t + dur + .02);
+}
+function golpe(c, hp, dur, vol) {
+  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), t = c.currentTime;
+  s.buffer = ruido(c); f.type = 'highpass'; f.frequency.value = hp; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.001, t + dur);
+  s.connect(f); f.connect(g); g.connect(c.destination); s.start(t); s.stop(t + dur + .02);
+}
+function snd(k, n) {
+  if (MUTE) return; const c = ctxA(); if (!c) return;
+  try {
+    if (k === 'bombo') { tono(c, 'sine', 150, 42, .45, 1); golpe(c, 80, .05, .25); }
+    else if (k === 'caja') { golpe(c, 1800, .16, .55); tono(c, 'triangle', 220, 150, .08, .3); }
+    else if (k === 'corneta') tono(c, 'sawtooth', n || 440, 0, .35, .2, 1800);
+    else if (k === 'clarinete') tono(c, 'square', n || 330, 0, .35, .12, 900);
+    else if (k === 'ok') { tono(c, 'triangle', 660, 0, .12, .3); setTimeout(() => tono(c, 'triangle', 990, 0, .2, .3), 90); }
+    else if (k === 'mal') tono(c, 'sawtooth', 140, 80, .3, .25, 700);
+    else if (k === 'tic') golpe(c, 4000, .03, .2);
+  } catch (e) {}
+}
+const uBand = () => Object.assign({}, UDEF, B.uniforme || {});
+const pctW = (w, W) => (100 * w / W).toFixed(2) + '%';
+function mfig(kind, wPx, leftPx, bottomPx, delay, cls) {
+  const W = 358;
+  return `<div class="mf ${cls || ''}" style="left:${pctW(leftPx, W)};width:${pctW(wPx, W)};bottom:${bottomPx}px;animation-delay:${delay || 0}s"><canvas class="uni" data-uid="band"></canvas>${kind ? `<svg viewBox="0 0 400 664" aria-hidden="true">${INSTR[kind]}</svg>` : ''}</div>`;
+}
+const pintaBanda = raiz => pintarUnis({band: uBand()}, raiz);
+function mjShell(titulo, sub, cuerpo, onSkip) {
+  const e = ov(`<div class="mj"><h2>${titulo}</h2><p>${sub}</p>${cuerpo}<div class="mjb"><button class="b3" id="sk">Saltar (resultado bajo)</button><button class="b3" id="mu"></button></div></div>`);
+  const mu = document.getElementById('mu'), txt = () => mu.textContent = MUTE ? 'Sonido: apagado' : 'Sonido: activado';
+  txt(); mu.onclick = () => { MUTE = !MUTE; try { localStorage.setItem('bf_mute', MUTE ? '1' : '0'); } catch (x) {} txt(); };
+  document.getElementById('sk').onclick = onSkip;
+  pintaBanda(e);
+  return e;
+}
+const hecho = (acaba) => { let ya = false; return async sc => {
+  if (ya) return; ya = true; acaba && acaba();
+  const {data, error} = await sb.rpc('ensayar_pulso', {p_puntuacion: sc});
+  if (error) { const o = document.getElementById('ov'); o && o.remove(); return aviso(error.message); }
+  fin('Ensayo terminado', `Puntuación: ${sc} de 100. Ganas ${data} xp.`);
+}; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
 async function ensayar() {
   if (E.fase !== 'ensayo') return aviso('Hoy es día de Semana Santa.');
   if (B.acciones < 1) return aviso('No te quedan acciones hoy.');
+  ctxA();
   if (!IMP) { const {data} = await sb.from('imprevistos').select('*').order('id'); IMP = data || []; }
-  IMP.length && Math.random() < 0.35 ? imprevisto(IMP[Math.floor(Math.random() * IMP.length)]) : pulso();
+  if (IMP.length && Math.random() < 0.3) return imprevisto(IMP[Math.floor(Math.random() * IMP.length)]);
+  [pulso, afinacion, paso, frase][Math.floor(Math.random() * 4)]();
 }
 
+// ---- 1. El pulso (bombo)
 function pulso() {
-  const N = 12, GAP = 800, beats = [], taps = []; let acabado = false;
-  ov(`<h2>Pulso de la banda</h2><p>Toca al ritmo cuando el círculo se ilumine. Los dos primeros golpes son de calentamiento.</p><div class="beat" id="bt"></div><button class="b2" id="tap">Tocar</button><button class="b3" id="sk" style="text-align:center">Saltar (resultado bajo)</button>`);
-  const bt = document.getElementById('bt'), t0 = performance.now() + 1200;
-  document.getElementById('tap').onpointerdown = () => taps.push(performance.now());
-  const enviar = async sc => {
-    if (acabado) return; acabado = true;
-    const {data, error} = await sb.rpc('ensayar_pulso', {p_puntuacion: sc});
-    if (error) { document.getElementById('ov').remove(); return aviso(error.message); }
-    fin('Ensayo terminado', `Puntuación del pulso: ${sc} de 100. Ganas ${data} xp.`);
+  const N = 12, GAP = 800, D = 1200, beats = [], taps = []; let timers = [], fin_ = null;
+  const e = mjShell('El pulso', 'Toca el bombo justo cuando el aro llegue al círculo. Los dos primeros son de calentamiento.',
+    `<div class="stg" style="height:340px;background:radial-gradient(ellipse at 50% 30%,#7a4a9a 0%,#2a1238 72%)"><div class="tg"></div><div id="rs"></div><div id="fb" class="fbk"></div>${mfig('bombo_anim', 170, 94, -24, 0, 'dm')}</div><button class="b2" id="tap" style="height:64px;font-size:20px">¡Bombo!</button>`,
+    () => enviar(30));
+  const enviar = hecho(() => timers.forEach(clearTimeout)), t0 = performance.now() + 1500, rs = document.getElementById('rs'), fb = document.getElementById('fb'), dm = e.querySelector('.dm');
+  const golpea = () => { dm.classList.remove('hit'); void dm.offsetWidth; dm.classList.add('hit'); };
+  document.getElementById('tap').onpointerdown = () => {
+    const t = performance.now(); taps.push(t); snd('bombo'); golpea();
+    const d = Math.min(...beats.map(b => Math.abs(t - b))), msg = d < 120 ? '¡Justo!' : d < 250 ? 'Bien' : d < 400 ? 'Casi' : '';
+    if (msg) { fb.textContent = msg; fb.className = 'fbk on'; setTimeout(() => fb.className = 'fbk', 400); }
   };
-  document.getElementById('sk').onclick = () => enviar(30);
   for (let i = 0; i < N; i++) {
-    beats.push(t0 + i * GAP);
-    setTimeout(() => { bt.classList.add('on'); setTimeout(() => bt.classList.remove('on'), 150); }, t0 + i * GAP - performance.now());
+    const b = t0 + i * GAP; beats.push(b);
+    timers.push(setTimeout(() => { const r = document.createElement('span'); r.className = 'rg2'; r.style.animationDuration = D + 'ms'; rs.appendChild(r); setTimeout(() => r.remove(), D + 200); }, b - D - performance.now()));
   }
-  setTimeout(() => {
-    let s = 0;
-    beats.slice(2).forEach(b => { const d = Math.min(999, ...taps.map(x => Math.abs(x - b))); s += Math.max(0, 1 - d / 350); });
+  timers.push(setTimeout(() => {
+    let s = 0; beats.slice(2).forEach(b => { const d = Math.min(999, ...taps.map(x => Math.abs(x - b))); s += Math.max(0, 1 - d / 350); });
     enviar(Math.round(100 * s / (N - 2)));
-  }, t0 + (N - 1) * GAP + 600 - performance.now());
+  }, t0 + (N - 1) * GAP + 600 - performance.now()));
 }
 
+// ---- 2. Afinación
+function afinacion() {
+  const ZW = [.20, .16, .12, .09, .07], RN = ZW.length; let r = 0, pts = [], raf = 0, t00 = performance.now(), centro = .5, vivo = true;
+  const room = `<svg class="bgs" viewBox="0 0 358 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><defs><linearGradient id="aw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a5568"/><stop offset="1" stop-color="#4a3040"/></linearGradient></defs><rect width="358" height="300" fill="url(#aw)"/><rect y="200" width="358" height="100" fill="#6b4529"/>${[0, 1, 2, 3, 4, 5, 6].map(i => `<rect x="${i * 60 - 10}" y="200" width="2" height="100" fill="#4f3220"/>`).join('')}<rect y="200" width="358" height="4" fill="#3a2516"/>
+  <rect x="24" y="34" width="84" height="92" rx="4" fill="#2b1a2e"/><rect x="30" y="40" width="72" height="80" fill="#f4d98c"/><rect x="64" y="40" width="4" height="80" fill="#a97d2b"/><rect x="30" y="76" width="72" height="4" fill="#a97d2b"/>
+  <rect x="150" y="40" width="190" height="8" rx="2" fill="#a97d2b"/><path d="M156 48h178v34l-89 14-89-14z" fill="#7a1020"/><image href="escudos/escudo-${String(B.escudo || 1).padStart(2, '0')}.png" x="223" y="49" width="44" height="44"/>
+  <circle cx="300" cy="170" r="32" fill="#e8dcc0"/><circle cx="300" cy="170" r="32" fill="none" stroke="#a97d2b" stroke-width="6"/></svg>`;
+  const mus = [[18, 66, 52, 0], [88, 66, 52, .12], [158, 66, 52, .05], [228, 66, 52, .18], [-6, 86, 0, .08], [76, 86, 0, .2], [160, 86, 0, .02], [244, 86, 0, .15]].map(([l, w, b, d]) => mfig(null, w, l, b, d, 'bob')).join('');
+  const notas = [[60, 150, 0, '♪'], [130, 170, .6, '♫'], [200, 160, 1.2, '♪'], [270, 150, .3, '♫']].map(([x, y, d, g]) => `<span class="nt" style="left:${pctW(x, 358)};bottom:${y}px;animation-delay:${d}s">${g}</span>`).join('');
+  const enviar = hecho(() => { vivo = false; cancelAnimationFrame(raf); });
+  const e = mjShell('Afinación', 'Para la aguja en la zona verde. Cada ronda es más difícil.',
+    `<div class="stg room">${room}${mus}${notas}</div><div class="tun"><div class="fila2" style="margin:0 0 10px"><span id="rd">Ronda 1 de ${RN}</span><span id="pt">Puntos: 0</span></div><div class="bar2"><div class="zy" id="zy"></div><div class="zv" id="zv"></div><div class="ag" id="ag"></div></div><div class="lb2"><span>Bajo</span><span>Afinado</span><span>Alto</span></div></div><button class="b2" id="ya" style="height:60px;font-size:20px">¡Ahora!</button>`,
+    () => enviar(30));
+  const zv = document.getElementById('zv'), zy = document.getElementById('zy'), ag = document.getElementById('ag');
+  const zona = () => { centro = .25 + Math.random() * .5; zv.style.left = (100 * (centro - ZW[r] / 2)) + '%'; zv.style.width = (100 * ZW[r]) + '%'; zy.style.left = (100 * (centro - ZW[r])) + '%'; zy.style.width = (100 * ZW[r] * 2) + '%'; };
+  zona();
+  let pos = 0;
+  const tick = t => {
+    if (!vivo) return;
+    const v = .55 + .13 * r, ph = ((t - t00) / 1000 * v) % 2; pos = ph < 1 ? ph : 2 - ph;
+    ag.style.left = `calc(${pos * 100}% - ${pos * 8}px)`; raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  document.getElementById('ya').onpointerdown = () => {
+    if (!vivo) return;
+    const d = Math.abs(pos - centro), w = ZW[r] / 2; let p = d <= w ? 100 : d <= w * 2 ? Math.round(60 * (1 - (d - w) / w)) : 0;
+    pts.push(p); snd(p >= 60 ? 'ok' : 'mal'); if (p >= 60) snd('corneta', 392 + r * 60);
+    document.getElementById('pt').textContent = 'Puntos: ' + Math.round(pts.reduce((a, b) => a + b, 0) / pts.length);
+    r++; if (r >= RN) return enviar(Math.round(pts.reduce((a, b) => a + b, 0) / RN));
+    document.getElementById('rd').textContent = `Ronda ${r + 1} de ${RN}`; zona();
+  };
+}
+
+// ---- 3. Marcar el paso
+function paso() {
+  const N = 16; let timers = [], cues = [], taps = [], vivo = true;
+  const enviar = hecho(() => timers.forEach(clearTimeout));
+  const fil = (n, w, b, ini, paso_) => Array.from({length: n}, (_, i) => mfig(i % 2 ? 'caja' : 'clarinete', w, ini + i * paso_, b, (i % 2) * .35, 'swy')).join('');
+  mjShell('Marcar el paso', 'Toca el pie que se ilumina, izquierdo o derecho. El ritmo irá cambiando.',
+    `<div class="stg" style="background:radial-gradient(ellipse at 50% 20%,#7a4a9a 0%,#2a1238 70%)">${[0, 1, 2, 3].map(i => mfig(i % 2 ? 'caja' : 'clarinete', 74, 8 + i * 86, 60, i * .17, 'swy')).join('')}${[0, 1, 2, 3].map(i => mfig(i === 1 ? 'bombo_anim' : i % 2 ? 'caja' : 'clarinete', 92, -6 + i * 90, 0, i * .17 + .1, 'swy')).join('')}<div id="fb" class="fbk"></div></div>
+    <div class="pies"><button class="pie" id="pl" data-l="0">Izquierdo</button><button class="pie" id="pr" data-l="1">Derecho</button></div><p class="nota" style="color:#d8c9e3;margin:0" id="pg">Prepárate…</p>`, () => enviar(30));
+  const t0 = performance.now() + 1500; let t = t0;
+  for (let i = 0; i < N; i++) { cues.push({t, lado: i % 2}); t += 720 - i * 12; }
+  const pies = [document.getElementById('pl'), document.getElementById('pr')];
+  cues.forEach((c, i) => timers.push(setTimeout(() => {
+    if (!vivo) return; pies[c.lado].classList.add('on'); snd(i % 4 === 0 ? 'bombo' : 'tic'); setTimeout(() => pies[c.lado].classList.remove('on'), 220);
+    const pg = document.getElementById('pg'); if (pg) pg.textContent = `Paso ${i + 1} de ${N}`;
+  }, c.t - performance.now())));
+  pies.forEach(p => p.onpointerdown = () => {
+    const tt = performance.now(), l = +p.dataset.l; taps.push({t: tt, l}); snd('caja');
+    const fb = document.getElementById('fb'); if (!fb) return;
+    const c = cues.map(c => ({c, d: Math.abs(c.t - tt)})).sort((a, b) => a.d - b.d)[0];
+    const ok = c.c.lado === l && c.d < 320; fb.textContent = !ok ? 'Fallo' : c.d < 120 ? '¡Justo!' : 'Bien'; fb.className = 'fbk on'; setTimeout(() => fb.className = 'fbk', 350);
+  });
+  timers.push(setTimeout(() => {
+    vivo = false; let s = 0, usados = new Set();
+    cues.forEach(c => {
+      let mejor = 0, idx = -1;
+      taps.forEach((x, k) => { if (usados.has(k) || x.l !== c.lado) return; const v = Math.max(0, 1 - Math.abs(x.t - c.t) / 320); if (v > mejor) { mejor = v; idx = k; } });
+      if (idx >= 0) usados.add(idx); s += mejor;
+    });
+    enviar(Math.round(100 * s / N));
+  }, cues[N - 1].t + 700 - performance.now()));
+}
+
+// ---- 4. Repetir la frase
+function frase() {
+  const K = ['caja', 'bombo_anim', 'corneta', 'clarinete'], NOM = ['Caja', 'Bombo', 'Corneta', 'Clarinete'], NT = [0, 0, 440, 330], RN = 5; let seq = [], ronda = 0, entrada = 0, turno = false, acabado = false, puntos = 0;
+  const enviar = hecho(() => { acabado = true; });
+  const e = mjShell('Repetir la frase', 'Escucha la frase y repítela tocando los instrumentos en el mismo orden.',
+    `<div class="padg">${K.map((k, i) => `<button class="padf" data-p="${i}"><div class="stp2">${mfig(k, 358, 0, 0, 0, 'pf')}</div><span>${NOM[i]}</span></button>`).join('')}</div><p class="nota" style="color:#f4d98c;font-weight:700;margin:0" id="ms">Escucha…</p><p class="nota" style="color:#d8c9e3;margin:0" id="rr">Ronda 1 de ${RN}</p>`, () => enviar(30));
+  const pads = [...e.querySelectorAll('.padf')], msg = t => { const m = document.getElementById('ms'); if (m) m.textContent = t; };
+  const toca = i => { if (i === 1) { const f = pads[1].querySelector('.mf'); f.classList.remove('hit'); void f.offsetWidth; f.classList.add('hit'); } snd(['caja', 'bombo', 'corneta', 'clarinete'][i], NT[i]); pads[i].classList.add('on'); setTimeout(() => pads[i].classList.remove('on'), 260); };
+  const reproduce = async () => {
+    turno = false; msg('Escucha…'); await sleep(700);
+    for (const i of seq) { if (acabado) return; toca(i); await sleep(620); }
+    entrada = 0; turno = true; msg('¡Tu turno!');
+  };
+  const nueva = () => { while (seq.length < ronda + 3) seq.push(Math.floor(Math.random() * 4)); document.getElementById('rr').textContent = `Ronda ${ronda + 1} de ${RN}`; reproduce(); };
+  pads.forEach((p, i) => p.onpointerdown = () => {
+    if (!turno || acabado) return; toca(i);
+    if (i !== seq[entrada]) { snd('mal'); turno = false; msg('Fallo'); puntos += Math.round(20 * entrada / seq.length); return setTimeout(() => enviar(Math.min(100, puntos)), 900); }
+    entrada++;
+    if (entrada === seq.length) { turno = false; puntos += 20; ronda++; snd('ok'); if (ronda >= RN) { msg('¡Perfecto!'); return setTimeout(() => enviar(Math.min(100, puntos)), 900); } msg('¡Bien!'); setTimeout(nueva, 900); }
+  });
+  nueva();
+}
+
+// ---- Imprevistos con ilustración
+const IMPIC = {
+  vecino: '<rect x="24" y="14" width="64" height="86" rx="4" fill="#2d1a3d"/><rect x="32" y="22" width="48" height="70" fill="#f4d98c"/><circle cx="56" cy="52" r="11" fill="#e6b896"/><path d="M44 66q12-12 24 0v22H44z" fill="#4a7a9b"/><path d="M100 36q14 14 0 28M112 28q20 22 0 44" fill="none" stroke="#e8b84a" stroke-width="3" stroke-linecap="round"/>',
+  roto: '<ellipse cx="60" cy="52" rx="42" ry="14" fill="#f1ead8" stroke="#a97d2b" stroke-width="4"/><path d="M18 52v36q42 20 84 0V52" fill="#7a1020" stroke="#a97d2b" stroke-width="4"/><path d="M62 40l-8 16 12 6-10 22" fill="none" stroke="#2a1238" stroke-width="3"/>',
+  falta: '<rect x="30" y="56" width="60" height="8" rx="3" fill="#a97d2b"/><path d="M36 64v38M84 64v38M36 56V28h48v28" fill="none" stroke="#a97d2b" stroke-width="6" stroke-linecap="round"/><text x="60" y="48" text-anchor="middle" font-size="26" fill="#f4d98c" font-family="Georgia">?</text>',
+  calor: '<circle cx="60" cy="52" r="22" fill="#e8b84a"/><g stroke="#e8b84a" stroke-width="5" stroke-linecap="round"><path d="M60 14v10M60 80v10M22 52h10M88 52h10M33 25l7 7M80 72l7 7M87 25l-7 7M40 72l-7 7"/></g>',
+  visita: '<rect x="34" y="14" width="52" height="86" rx="4" fill="#4a2466"/><circle cx="76" cy="58" r="4" fill="#f4d98c"/><circle cx="60" cy="40" r="10" fill="#e6b896"/><path d="M46 62q14-14 28 0v30H46z" fill="#2a5a7a"/>',
+  plaza: '<circle cx="90" cy="26" r="14" fill="#f4d98c"/><rect x="30" y="64" width="8" height="34" fill="#6b4529"/><circle cx="34" cy="50" r="24" fill="#4aa564"/><rect y="94" width="120" height="8" fill="#6b4529"/>'
+};
+const impKey = t => { t = t.toLowerCase(); return /vecino/.test(t) ? 'vecino' : /rompe|instrumento/.test(t) ? 'roto' : /falta/.test(t) ? 'falta' : /calor/.test(t) ? 'calor' : /visita/.test(t) ? 'visita' : /plaza/.test(t) ? 'plaza' : 'vecino'; };
 function imprevisto(ev) {
-  const e = ov(`<h2>${h(ev.titulo)}</h2><p>${h(ev.texto)}</p>${ev.opciones.map((o, i) => `<button class="b3" data-o="${i}">${h(o.texto)}${o.coste ? ' (' + eur(o.coste) + ')' : ''}</button>`).join('')}`);
+  const chips = o => [o.coste ? `<span class="cp c1">−${eur(o.coste)}</span>` : '<span class="cp c4">Gratis</span>', `<span class="cp c2">+${o.xp} xp</span>`, o.riesgo ? `<span class="cp c1">${o.riesgo} % de multa de ${eur(o.multa || 0)}</span>` : ''].join('');
+  const e = ov(`<div class="mj"><span class="pill" style="background:var(--oro2)">Imprevisto</span><h2>${h(ev.titulo)}</h2><p>${h(ev.texto)}</p>
+  <div class="stg" style="height:170px;background:linear-gradient(#3b2a52,#1d1030)"><svg viewBox="0 0 120 110" style="position:absolute;inset:0;margin:auto;height:150px;width:auto" aria-hidden="true">${IMPIC[impKey(ev.titulo)]}</svg></div>
+  ${ev.opciones.map((o, i) => `<button class="opc" data-o="${i}"><b>${h(o.texto)}</b><div class="chs">${chips(o)}</div></button>`).join('')}</div>`);
   e.querySelectorAll('[data-o]').forEach(b => b.onclick = async () => {
     const {data, error} = await sb.rpc('resolver_imprevisto', {p_id: ev.id, p_opcion: +b.dataset.o});
     if (error) { document.getElementById('ov').remove(); return aviso(error.message); }
     fin('Ensayo terminado', `Ganas ${data.xp} xp.` + (data.coste ? ` Gastas ${eur(data.coste)}.` : '') + (data.multa ? ' Ha saltado una multa.' : ''));
   });
+}
+
+// ---- Escena de la crónica
+function escenaCronica(titulo, lluvia, tiempo) {
+  const gotas = lluvia ? '<svg class="llu" viewBox="0 0 358 340" preserveAspectRatio="none" aria-hidden="true">' + Array.from({length: 46}, (_, i) => `<line x1="${(i * 23) % 358}" y1="${(i * 37) % 340}" x2="${(i * 23) % 358 - 6}" y2="${(i * 37) % 340 + 16}" stroke="#cfe3ff" stroke-width="1.2" opacity=".55"/>`).join('') + '</svg>' : '';
+  const back = [[2, 0], [88, .1], [176, .04], [262, .14]].map(([x, d]) => mfig('corneta', 88, x, 84, d, 'bob')).join('');
+  const front = [['caja', -10, .06], ['bombo_anim', 78, .16], ['clarinete', 168, .02], ['clarinete', 258, .12]].map(([k, x, d]) => mfig(k, 108, x, 0, d, 'bob')).join('');
+  return `<div class="stg" style="height:340px;background:${lluvia ? 'radial-gradient(ellipse at 50% 20%,#59607a 0%,#232538 72%)' : 'radial-gradient(ellipse at 50% 20%,#7a4a9a 0%,#2a1238 70%)'}"><span class="chw">${tiempo}</span><div class="ttl">${titulo}</div>${back}${front}${gotas}</div>`;
 }
 
 async function pRanking() {
