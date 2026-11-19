@@ -117,7 +117,7 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .ttl{position:absolute;left:0;right:0;top:10px;text-align:center;font:700 20px Georgia,serif;color:var(--oro2);z-index:5}
 .llu{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;animation:llu .5s linear infinite}@keyframes llu{to{transform:translate(-6px,16px)}}
 @media (prefers-reduced-motion:reduce){.bob,.swy,.nt,.llu{animation:none}}
-.mlist{max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--lin);border-radius:12px}.mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--lin);margin:0;cursor:pointer}.mrow input{width:22px;height:22px;flex:none;margin:0;padding:0;accent-color:var(--v)}.mrow span:nth-of-type(1){flex:1;min-width:0}.mrow small{display:block;color:var(--gris);font-weight:400}</style>
+.mlist{max-height:340px;overflow:auto;margin-top:10px;border:1px solid var(--lin);border-radius:12px}.mrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--lin);margin:0;cursor:pointer}.mrow input{width:22px;height:22px;flex:none;margin:0;padding:0;accent-color:var(--v)}.mrow span:nth-of-type(1){flex:1;min-width:0}.mrow small{display:block;color:var(--gris);font-weight:400}.avj{border-bottom:1px solid var(--lin);padding:10px 0;cursor:pointer}.ajb{margin-top:8px;cursor:auto}.b3x{display:block;width:100%;margin-top:8px;min-height:44px;background:var(--lin);color:var(--v);border-radius:12px;font-weight:700}.b3x.rojo{background:#fbe9e7;color:#8a1c10}.opt2{display:flex;gap:10px;align-items:center;margin-top:12px}.opt2 input{width:22px;height:22px;margin:0;flex:none}</style>
 </head>
 <body>
 <div id="app"></div>
@@ -126,7 +126,7 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 <script>
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = document.getElementById('app'), EM = '@bandasfantasy.app';
-let P = {}, B = null, tab = 'inicio', F = {tipo: 'Banda de Música', nombre: '', proc: '', esc: 1};
+let ADM = false, P = {}, B = null, tab = 'inicio', F = {tipo: 'Banda de Música', nombre: '', proc: '', esc: 1};
 const TIPOS = ['Banda de Música', 'Asociación Musical', 'Sociedad Filarmónica'];
 const ic = d => `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const SEC = {
@@ -175,6 +175,7 @@ async function init() {
   if (e1) { app.innerHTML = '<main><section><h2>No se pudo cargar el juego</h2><p class="nota">' + h(e1.message) + '</p></section></main>'; return; }
   P = {}; ps.forEach(x => P[x.clave] = Number(x.valor));
   const {data: est} = await sb.rpc('sincronizar'); E = est || E;
+  { const {data: ad} = await sb.rpc('es_admin'); ADM = ad === true; }
   await sb.rpc('refrescar_dia');
   const {data: b} = await sb.from('bandas').select('*, repertorio(marcha_id, marchas(estilo,propia_de))').eq('id', session.user.id).maybeSingle();
   B = b;
@@ -253,12 +254,12 @@ function vistaApp() {
   app.innerHTML = `<header class="top"><button class="hq" id="hq" aria-label="Mi banda">${escudo(B.escudo, 52)}<div><h1>${h(B.nombre)}</h1><small>${h(B.usuario)} · toca para editar tu banda</small></div></button>
   <div class="chip"><span>${eur(B.dinero)}</span><small>Nivel ${B.nivel}</small></div></header>
   <main id="vista"></main><div id="aviso" class="aviso fijo" hidden></div>
-  <nav class="nav">${NAV.map(([k, n, d]) => `<button class="${k === tab && !SUB ? 'on' : ''}" data-t="${k}">${ic(d)}${n}</button>`).join('')}<button id="salir">${ic('<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>')}Salir</button></nav>`;
+  <nav class="nav">${NAV.concat(ADM ? [['admin', 'Admin', '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/>']] : []).map(([k, n, d]) => `<button class="${k === tab && !SUB ? 'on' : ''}" data-t="${k}">${ic(d)}${n}</button>`).join('')}<button id="salir">${ic('<path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/>')}Salir</button></nav>`;
   app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; SUB = null; vistaApp(); });
   document.getElementById('hq').onclick = () => { SUB = {v: 'mibanda'}; vistaApp(); };
   window.scrollTo(0, 0);
   document.getElementById('salir').onclick = async () => { await sb.auth.signOut(); B = null; vistaAuth(false); };
-  (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico, componer: pComponer}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking}[tab])();
+  (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico, componer: pComponer}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking, admin: pAdmin}[tab])();
 }
 
 async function pInicio() {
@@ -722,6 +723,47 @@ function escenaCronica(titulo, lluvia, tiempo) {
   const back = [[2, 0], [88, .1], [176, .04], [262, .14]].map(([x, d]) => mfig('corneta', 88, x, 84, d, 'bob')).join('');
   const front = [['caja', -10, .06], ['bombo_anim', 78, .16], ['clarinete', 168, .02], ['clarinete', 258, .12]].map(([k, x, d]) => mfig(k, 108, x, 0, d, 'bob')).join('');
   return `<div class="stg" style="height:340px;background:${lluvia ? 'radial-gradient(ellipse at 50% 20%,#59607a 0%,#232538 72%)' : 'radial-gradient(ellipse at 50% 20%,#7a4a9a 0%,#2a1238 70%)'}"><span class="chw">${tiempo}</span><div class="ttl">${titulo}</div>${back}${front}${gotas}</div>`;
+}
+
+
+// ======== Panel de administrador ========
+let ADMA = null;
+async function pAdmin() {
+  const v = document.getElementById('vista');
+  v.innerHTML = '<section><h2>Administrador</h2><p class="nota">Cargando…</p></section>';
+  const [{data: est, error: e1}, {data: js, error: e2}] = await Promise.all([sb.rpc('admin_estado'), sb.rpc('admin_jugadores')]);
+  if (e1 || e2) { v.innerHTML = ''; return aviso((e1 || e2).message); }
+  const f = t => t ? new Date(t).toLocaleString('es-ES', {day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'}) : 'nunca';
+  v.innerHTML = `<section><h2>Estado del juego</h2>
+  <div class="fila2"><span>Inicio del calendario</span><span>${est.inicio}</span></div>
+  <div class="fila2"><span>Día del juego</span><span>${est.dia} (${est.fase === 'ensayo' ? 'ensayo' : 'Semana Santa'})</span></div>
+  <div class="fila2"><span>Temporada</span><span>${est.temporada}</span></div>
+  <div class="fila2"><span>Cuentas / bandas</span><span>${est.cuentas} / ${est.bandas}</span></div></section>
+  <section><h2>Jugadores</h2>${js.map(j => `<div class="avj" data-j="${j.id}"><div class="fila" style="margin:0"><div style="flex:1;min-width:0"><b>${h(j.usuario)}</b>${j.admin ? ' <span class="pill" style="background:var(--oro2)">Admin</span>' : ''}<small style="display:block;color:var(--gris)">${j.banda ? h(j.banda) + ' · nivel ' + j.nivel + ' · ' + eur(j.dinero) + ' · ' + j.acciones + ' acciones' : 'Sin banda'}</small><small style="display:block;color:var(--gris)">Última conexión: ${f(j.ultima)}</small></div></div>
+  <div class="ajb" hidden>
+    <label>Nueva contraseña</label><input class="ac" placeholder="Mínimo 6 caracteres"><button class="b3x" data-a="clave">Cambiar contraseña</button>
+    ${j.banda ? `<label>Dar (o quitar con signo −)</label><div style="display:flex;gap:8px"><input class="ad" type="number" placeholder="Dinero"><input class="aa" type="number" placeholder="Acciones"></div><button class="b3x" data-a="dar">Aplicar</button><button class="b3x" data-a="banda">Reiniciar su banda</button>` : ''}
+    ${j.admin ? '' : '<button class="b3x rojo" data-a="borrar">Borrar usuario</button>'}
+  </div></div>`).join('')}</section>
+  <section><h2>Reiniciar el juego</h2><p class="nota" style="margin:0">Borra todas las bandas y sus datos, las noticias y la lluvia de las temporadas, y vuelve a poner el calendario en el día de hoy como primer día de ensayo.</p>
+  <label class="opt2"><input type="checkbox" id="rc"> Borrar también todas las cuentas (menos las de administrador)</label>
+  <label>Escribe REINICIAR para confirmar</label><input id="rt" autocomplete="off"><button class="b3x rojo" id="rj">Reiniciar el juego</button></section>`;
+  const llama = async (fn, args, ok) => { const {error} = await sb.rpc(fn, args); if (error) return aviso(error.message); aviso(''); await pAdmin(); window.scrollTo(0, 0); alert(ok); };
+  v.querySelectorAll('.avj').forEach(d => {
+    const id = d.dataset.j, u = d.querySelector('b').textContent;
+    d.querySelector('.fila').onclick = () => { const x = d.querySelector('.ajb'); x.hidden = !x.hidden; };
+    d.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+      const a = b.dataset.a;
+      if (a === 'clave') { const c = d.querySelector('.ac').value; return llama('admin_clave', {p_id: id, p_clave: c}, `Contraseña de ${u} cambiada.`); }
+      if (a === 'dar') return llama('admin_dar', {p_id: id, p_dinero: parseInt(d.querySelector('.ad').value) || 0, p_acciones: parseInt(d.querySelector('.aa').value) || 0}, 'Hecho.');
+      if (a === 'banda' && confirm(`¿Reiniciar la banda de ${u}? Se borra y tendrá que crear otra.`)) return llama('admin_reiniciar_banda', {p_id: id}, 'Banda reiniciada.');
+      if (a === 'borrar' && confirm(`¿Borrar a ${u} y su banda? No se puede deshacer.`)) return llama('admin_borrar_usuario', {p_id: id}, 'Usuario borrado.');
+    });
+  });
+  document.getElementById('rj').onclick = () => {
+    if (!confirm('Esto borra todo lo de la partida. ¿Seguro?')) return;
+    llama('admin_reiniciar_juego', {p_confirmar: document.getElementById('rt').value.trim(), p_cuentas: document.getElementById('rc').checked}, 'Juego reiniciado.');
+  };
 }
 
 async function pRanking() {
