@@ -614,7 +614,8 @@ async function previaJornada(c, prev) {
 function cronica(d, sig, S) {
   const pag = [];
   if (d.decision === 'no_sale') pag.push('nosale');
-  else FASES.forEach(f => { if ((d.tramos || []).some(t => t.momento === f)) pag.push(f); });
+  else FASES.forEach(f => { if ((d.tramos || []).some(t => t.momento === f) && !(d.decision === 'refugia' && f === 'Recogida')) pag.push(f); });
+  if (d.decision === 'refugia') pag.push('refugio', 'vuelta');
   pag.push('fin');
   let i = 0;
   const hs = t => t || '—';
@@ -634,10 +635,13 @@ function cronica(d, sig, S) {
       ${d.cansancio !== undefined && d.decision !== 'no_sale' && !d.auto ? `<div class="fila2"><span>Cansancio de la banda</span><span>${['Fresca', 'Al límite', 'Cansada'][d.cansancio]}</span></div>` : ''}
       ${d.sig_jornada && d.sig_cansancio !== undefined && d.sig_cansancio !== null ? `<p class="nota" style="margin:8px 0 0;color:#4a3a5a"><b>Próxima: ${h(d.sig_hermandad)} (${d.sig_jornada}).</b> ${['Tu banda llegará fresca: los refuerzos no son imprescindibles.', 'Tu banda llegará al límite: unos refuerzos ayudarían.', 'Tu banda llegará cansada: te conviene contratar refuerzos.'][d.sig_cansancio]}</p>` : ''}
       ${d.auto ? '<p class="nota" style="color:#4a3a5a">Esta jornada se resolvió sola porque no te conectaste: cobraste la mitad.</p>' : ''}</div>
-      ${d.decision === 'refugia' ? '<div class="avo">La vuelta es mañana temprano desde la Catedral. No gasta acciones.</div>' : ''}`;
+      ${d.decision === 'refugia' ? '<div class="avo">Por mojarse y por volver al día siguiente, el cobro y la experiencia suben.</div>' : ''}`;
+    else if (pg === 'refugio') cuerpo = escenaCronica('Carrera oficial', true, 'Lluvia') + `<div class="avo"><b class="tramo">ESTA NOCHE</b>El cielo se ha cerrado y la lluvia no da tregua. La Junta de Gobierno decide que los pasos se resguarden en la Catedral y que la cofradía retome el camino de vuelta al amanecer.<br><span class="pill" style="margin-top:6px;display:inline-block;background:#f4d98c;color:#2a1238">Se refugia y vuelve al amanecer</span></div>
+      <div class="avo"><b>Pasos a cubierto</b> · es un caso muy poco habitual.<br><b>Qué tiene que hacer tu banda:</b> nada esta noche. Al amanecer vuelve a sonar, y no gasta acciones: es la misma jornada.<br><small style="color:#6a5f73">Un gesto de paciencia con la hermandad suma puntos.</small></div>`;
+    else if (pg === 'vuelta') cuerpo = escenaCronica('Recogida', false, 'Despejado') + `<div class="avo"><b class="tramo">ESTA MAÑANA</b>Por ahora no llueve. ${h(d.hermandad)} reanuda su camino de vuelta con las primeras luces del día.<div class="fila2"><span>Salida a las 08:00</span><span>Desde la Catedral</span></div></div>` + (d.tramos || []).filter(t => t.momento === 'Recogida').map(t => `<div class="avo"><b class="tramo">${h(t.tramo.toUpperCase())}</b>${h(t.texto)}<br>${t.marcha ? `<small class="mch">♪ Suena «${h(t.marcha)}»${t.encaje === 'si' ? ' · encaja con la hermandad' : t.encaje === 'no' ? ' · no encaja con la hermandad' : ''}</small><br>` : ''}<span class="pill" style="margin-top:6px;display:inline-block;background:${t.efecto > 0 ? '#e1f2e6' : t.efecto < 0 ? '#fbe9e7' : '#efe9f3'};color:${t.efecto > 0 ? '#1d6236' : t.efecto < 0 ? '#8a1c10' : '#4a2466'}">Satisfacción ${filaEf(t.efecto)}</span></div>`).join('');
     else cuerpo = escenaCronica(pg, d.llueve, d.llueve ? 'Lluvia' : 'Despejado') + (d.tramos || []).filter(t => t.momento === pg).map(t => `<div class="avo"><b class="tramo">${h(t.tramo.toUpperCase())}</b>${h(t.texto)}<br>${t.marcha ? `<small class="mch">♪ Suena «${h(t.marcha)}»${t.encaje === 'si' ? ' · encaja con la hermandad' : t.encaje === 'no' ? ' · no encaja con la hermandad' : ''}</small><br>` : ''}<span class="pill" style="margin-top:6px;display:inline-block;background:${t.efecto > 0 ? '#e1f2e6' : t.efecto < 0 ? '#fbe9e7' : '#efe9f3'};color:${t.efecto > 0 ? '#1d6236' : t.efecto < 0 ? '#8a1c10' : '#4a2466'}">Satisfacción ${filaEf(t.efecto)}</span></div>`).join('');
-    const tit = pg === 'fin' ? 'Jornada completada' : pg === 'nosale' ? 'No sale' : pg;
-    const botones = !ultimo ? '<button class="b2" id="sig">Siguiente</button>'
+    const tit = pg === 'fin' ? 'Jornada completada' : pg === 'nosale' ? 'No sale' : pg === 'refugio' ? 'Refugio en la Catedral' : pg === 'vuelta' ? 'La vuelta' : pg;
+    const botones = !ultimo ? `<button class="b2" id="sig">${pg === 'refugio' ? 'Entendido, hasta mañana' : pg === 'vuelta' ? 'Ver cómo ha ido la jornada' : 'Siguiente'}</button>`
       : (sig ? `<button class="b2" id="nx">Siguiente contrato (${h(sig.c.hermandades.nombre)} - ${sig.c.hermandades.jornada})</button>`
              : '<button class="b2" id="rs">Resumen de la Semana Santa</button>') + '<button class="b3" id="cl2" style="text-align:center">Cerrar</button>';
     const ove = ov(`<h2>${tit}</h2><p>${h(d.hermandad)} · ${d.jornada}</p>${cuerpo}${botones}`); pintaBanda(ove);
