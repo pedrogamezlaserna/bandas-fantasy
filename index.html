@@ -504,7 +504,7 @@ function bdHtml() {
   const cfg = Object.assign({}, BD, {texto1: B.nombre_elegido || B.nombre, texto2: B.procedencia || '', escudo: B.escudo});
   const sw = PAL.map(c => `<button class="sw ${BD.pano === c ? 'on' : ''}" data-bp="${c}" style="background:${c}" aria-label="${c}"></button>`).join('');
   const o = B.banderin || {}, igual = o.estilo === BD.estilo && o.pano === BD.pano && o.metal === BD.metal && !!o.corona === !!BD.corona;
-  return `<p class="nota" style="margin:0 0 8px">Cada estilo de bordado se compra una vez. Después puedes cambiar colores, metal y corona gratis. Los demás lo ven en tu perfil.</p>
+  return `<p class="nota" style="margin:0 0 8px">Cada estilo de bordado se compra una vez. La primera vez que compras cada estilo ganas experiencia (Sobrio 60, Barroco 120, Rococó 250). Después puedes cambiar colores, metal y corona gratis. Los demás lo ven en tu perfil.</p>
   <div style="text-align:center">${banderin(cfg, 230)}</div>
   <div class="lbl">Estilo</div><div class="bt">${Object.keys(BDE).map(e => `<button class="seg ${BD.estilo === e ? 'on' : ''}" data-be="${e}">${BDE[e]}<br><small>${mios.includes(e) ? 'Tuyo' : eur(bdPrecio(e))}</small></button>`).join('')}</div>
   <div class="lbl">Color del paño</div><div class="sws">${sw}</div>
