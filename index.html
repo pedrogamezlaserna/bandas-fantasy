@@ -250,6 +250,7 @@ async function vistaCrear() {
   <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${F.esc === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}" aria-pressed="${F.esc === i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div></section>
   <section><h2>Uniforme</h2><p class="nota" style="margin:0 0 8px">Elige cómo vestirá tu banda. Ahora es gratis; más adelante, cambiar de modelo costará dinero y cambiar solo los colores seguirá siendo gratis.</p><div id="suc"></div></section>
   <section><h2>Marchas iniciales</h2><p class="nota" style="margin:0 0 8px">Elige exactamente 20 marchas para empezar: toca las que quieras en la lista. Más adelante podrás montar más, hasta ${P.max_repertorio || 80}. <b id="mc"></b></p>
+  <div class="bt" style="margin:0 0 8px"><button class="of2" id="mal" type="button" style="margin:0">Elegir al azar</button><button class="of2" id="mva" type="button" style="margin:0">Quitar todas</button></div>
   <div class="tabs3" id="mfl" style="margin-top:0">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, n]) => `<button data-mf="${k}" class="${FMF === k ? 'on' : ''}">${n}</button>`).join('')}</div>
   <div id="ml" class="mlist"></div></section>
   <section><h2>Plantilla inicial</h2><p class="nota" style="margin:0 0 4px">Mínimo ${min} músicos. Cada uno cuesta ${eur(pr)} con su uniforme. Cornetas: máximo ${tope('cornetas')}. Percusión: máximo ${tope('percusion')} (dos cajas, bombo y platillo).</p>
@@ -285,6 +286,12 @@ async function vistaCrear() {
     });
   };
   app.querySelectorAll('[data-mf]').forEach(b => b.onclick = () => { FMF = b.dataset.mf; app.querySelectorAll('[data-mf]').forEach(x => x.classList.toggle('on', x === b)); pintaM(); });
+  document.getElementById('mal').onclick = () => {
+    const libres = base.map(m => m.id).filter(id => !FM.has(id));
+    for (let i = libres.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [libres[i], libres[j]] = [libres[j], libres[i]]; }
+    libres.slice(0, 20 - FM.size).forEach(id => FM.add(id)); aviso(''); pintaM(); calc();
+  };
+  document.getElementById('mva').onclick = () => { FM.clear(); aviso(''); pintaM(); calc(); };
   const ins = [...app.querySelectorAll('[data-s]')], num = i => Math.min(tope(i.dataset.s), Math.max(0, parseInt(i.value) || 0));
   const calc = () => {
     const n = ins.reduce((a, i) => a + num(i), 0), c = n * pr;
