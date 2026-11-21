@@ -174,10 +174,28 @@ function vistaAuth(reg) {
   ${reg ? '<label for="co">Correo electrónico</label><input id="co" type="email" autocomplete="email" autocapitalize="none"><p class="nota" style="margin:4px 0 0">Solo lo ve el administrador, para saber quién eres. No se envía ningún correo.</p>' : ''}
   <p id="aviso" class="aviso" hidden></p>
   <button id="go">${reg ? 'Crear cuenta' : 'Entrar'}</button>
-  <button class="link" id="alt">${reg ? 'Ya tengo cuenta' : 'Quiero registrarme'}</button></main>`;
+  <button class="link" id="alt">${reg ? 'Ya tengo cuenta' : 'Quiero registrarme'}</button>
+  ${yaInstalada() ? '' : '<button class="of2" id="inst" type="button" style="margin-top:22px">Añadir el juego a la pantalla de inicio</button>'}</main>`;
   document.getElementById('go').onclick = () => entrar(reg);
   document.getElementById('alt').onclick = () => vistaAuth(!reg);
+  const bi = document.getElementById('inst'); if (bi) bi.onclick = instalar;
 }
+
+// ===== Añadir a la pantalla de inicio =====
+let PROMPT_INST = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); PROMPT_INST = e; });
+window.addEventListener('appinstalled', () => { PROMPT_INST = null; const b = document.getElementById('inst'); if (b) b.remove(); });
+const yaInstalada = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+async function instalar() {
+  if (PROMPT_INST) { PROMPT_INST.prompt(); try { await PROMPT_INST.userChoice; } catch (e) {} PROMPT_INST = null; return; }
+  const ua = navigator.userAgent, ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const pasos = ios
+    ? ['Abre esta página en <b>Safari</b> (no vale desde otras apps).', 'Toca el botón <b>Compartir</b> (el cuadrado con una flecha hacia arriba).', 'Baja y elige <b>Añadir a pantalla de inicio</b>.', 'Toca <b>Añadir</b>. ¡Ya tienes el icono!']
+    : ['Abre esta página en <b>Chrome</b>.', 'Toca el menú <b>⋮</b> (tres puntos, arriba a la derecha).', 'Elige <b>Añadir a pantalla de inicio</b> o <b>Instalar aplicación</b>.', 'Confirma con <b>Añadir</b>. ¡Ya tienes el icono!'];
+  const e = ov(`<h2>Añadir a tu móvil</h2><p>Así abrirás el juego como una app, sin escribir la dirección.</p><ol style="text-align:left;max-width:380px;margin:0;padding-left:22px;line-height:1.5">${pasos.map(x => `<li style="margin-bottom:8px">${x}</li>`).join('')}</ol><button class="b2" id="instok" type="button">Entendido</button>`);
+  document.getElementById('instok').onclick = () => e.remove();
+}
+
 
 async function entrar(reg) {
   const u = document.getElementById('u').value.trim().toLowerCase(), p = document.getElementById('p').value;
