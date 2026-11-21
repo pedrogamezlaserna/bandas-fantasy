@@ -229,7 +229,7 @@ async function init() {
 
 const nombreFinal = () => { const n = F.nombre.trim(), p = F.proc.trim(); return n ? `${F.tipo} «${n}»${p ? ' de ' + p : ''}` : ''; };
 
-let FM = null, FMF = 'todas';
+let FM = null, FMF = 'todas', FU = null;
 async function vistaCrear() {
   if (!CAT) {
     const {data, error} = await sb.from('marchas').select('id,titulo,compositor,estilo,propia_de,dedicatoria').order('titulo');
@@ -248,6 +248,7 @@ async function vistaCrear() {
   <div class="lbl">Así se llamará tu banda</div><div id="prev" class="prev"></div>
   <p class="nota">Solo da realismo al nombre: no influye en el juego.</p></section>
   <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${F.esc === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}" aria-pressed="${F.esc === i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div></section>
+  <section><h2>Uniforme</h2><p class="nota" style="margin:0 0 8px">Elige cómo vestirá tu banda. Ahora es gratis; más adelante, cambiar de modelo costará dinero y cambiar solo los colores seguirá siendo gratis.</p><div id="suc"></div></section>
   <section><h2>Marchas iniciales</h2><p class="nota" style="margin:0 0 8px">Elige exactamente 20 marchas para empezar: toca las que quieras en la lista. Más adelante podrás montar más, hasta ${P.max_repertorio || 80}. <b id="mc"></b></p>
   <div class="tabs3" id="mfl" style="margin-top:0">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, n]) => `<button data-mf="${k}" class="${FMF === k ? 'on' : ''}">${n}</button>`).join('')}</div>
   <div id="ml" class="mlist"></div></section>
@@ -255,6 +256,25 @@ async function vistaCrear() {
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b><label for="s_${k}" style="margin:0;font-size:16px">${n}${tope(k) < Infinity ? ` <small style="color:var(--gris);font-weight:600">(máx. ${tope(k)})</small>` : ''}</label></b><input id="s_${k}" type="number" min="0" ${tope(k) < Infinity ? `max="${tope(k)}"` : ''} value="${DEF[k]}" inputmode="numeric" data-s="${k}"></div>`).join('')}</section>
   <section style="border:2px solid var(--oro)"><div class="res" id="res"></div></section>
   <p id="aviso" class="aviso" hidden></p><button id="go" class="fund">Fundar banda</button></main>`;
+  if (!FU) FU = Object.assign({}, UDEF);
+  const uniCrear = () => {
+    const U = FU, sw = k => `<div class="sws">${PAL.map(c => `<button class="sw ${U[k] === c ? 'on' : ''}" data-uk="${k}" data-c="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>`;
+    document.getElementById('suc').innerHTML = `<div style="text-align:center">${uniHtml('cu', 190)}</div>
+    <div class="lbl">Modelo</div><div class="mods">${[1, 2, 3].map(m => `<button class="md ${U.modelo === m ? 'on' : ''}" data-um="${m}">${uniHtml('cm' + m, 62)}<span>${['Botones dorados', 'Corbata y galones', 'Cruzada y cinturón'][m - 1]}</span></button>`).join('')}</div>
+    <div class="lbl">Chaqueta</div>${sw('chaqueta')}<div class="lbl">Pantalón</div>${sw('pantalon')}
+    ${U.modelo >= 2 ? `<div class="lbl">Corbata</div>${sw('corbata')}` : ''}${U.modelo === 3 ? `<div class="lbl">Cinturón</div>${sw('cinturon')}` : ''}
+    <div class="lbl">Botonadura y galones</div><div class="bt"><button class="seg ${U.metal === 'oro' ? 'on' : ''}" data-umt="oro">Oro</button><button class="seg ${U.metal === 'plata' ? 'on' : ''}" data-umt="plata">Plata</button></div>
+    <div class="lbl">Gorra</div><div class="bt"><button class="seg ${!U.gorra ? 'on' : ''}" data-ug="0">Sin gorra</button><button class="seg ${U.gorra ? 'on' : ''}" data-ug="1">Gorra de plato</button></div>
+    ${U.gorra ? `<div class="lbl">Color de la gorra</div>${sw('gorra')}` : ''}`;
+    const r = document.getElementById('suc');
+    r.querySelectorAll('[data-um]').forEach(x => x.onclick = () => { U.modelo = +x.dataset.um; uniCrear(); });
+    r.querySelectorAll('[data-uk]').forEach(x => x.onclick = () => { U[x.dataset.uk] = x.dataset.c; uniCrear(); });
+    r.querySelectorAll('[data-umt]').forEach(x => x.onclick = () => { U.metal = x.dataset.umt; uniCrear(); });
+    r.querySelectorAll('[data-ug]').forEach(x => x.onclick = () => { U.gorra = x.dataset.ug === '1' ? (U.gorra || '#7a1020') : null; uniCrear(); });
+    const mapa = {cu: U}; [1, 2, 3].forEach(m => mapa['cm' + m] = Object.assign({}, U, {modelo: m}));
+    pintarUnis(mapa, r);
+  };
+  uniCrear();
   const pintaM = () => {
     const l = base.filter(m => FMF === 'todas' || (FMF === 'fun' ? m.estilo === 'Fúnebre' : m.estilo !== 'Fúnebre')).sort((x, y) => x.titulo.localeCompare(y.titulo, 'es'));
     document.getElementById('ml').innerHTML = l.map(m => `<label class="mrow"><input type="checkbox" data-m="${m.id}" ${FM.has(m.id) ? 'checked' : ''}><span><b>${h(m.titulo)}</b><small>${h(m.compositor || '')}</small></span><span class="pill ${m.estilo === 'Fúnebre' ? 'p2' : ''}">${m.estilo}</span></label>`).join('');
@@ -282,10 +302,10 @@ async function vistaCrear() {
   document.getElementById('go').onclick = async () => {
     const a = {p_tipo: F.tipo, p_nombre: F.nombre, p_procedencia: F.proc, p_escudo: F.esc};
     ins.forEach(i => a['p_' + i.dataset.s] = num(i));
-    a.p_marchas = [...FM];
+    a.p_marchas = [...FM]; a.p_uniforme = FU;
     const {error} = await sb.rpc('crear_banda', a);
     if (error) return aviso(error.message.includes('duplicate') ? 'Ese nombre de banda ya está cogido.' : error.message);
-    FM = null; await init(); reglas(true);
+    FM = null; FU = null; await init(); reglas(true);
   };
 }
 
