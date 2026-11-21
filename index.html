@@ -169,6 +169,7 @@ function vistaAuth(reg) {
   app.innerHTML = `<main class="auth"><img class="logo" src="logo.png" width="900" height="445" alt="Bandas Fantasy" onerror="this.outerHTML='<h1 class=&quot;f&quot;>Bandas Fantasy</h1>'">
   <p class="lema">Crea tu banda, gana contratos y compite por la Semana Santa.</p>
   <label for="u">Usuario</label><input id="u" autocomplete="username" autocapitalize="none">
+  ${reg ? '<p class="nota" style="margin:4px 0 0"><b>Elígelo bien:</b> este nombre será el del director de la banda y no se podrá cambiar más adelante. Puede ser un pseudónimo o tu nombre.</p>' : ''}
   <label for="p">Contraseña</label><input id="p" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}">
   ${reg ? '<label for="co">Correo electrónico</label><input id="co" type="email" autocomplete="email" autocapitalize="none"><p class="nota" style="margin:4px 0 0">Solo lo ve el administrador, para saber quién eres. No se envía ningún correo.</p>' : ''}
   <p id="aviso" class="aviso" hidden></p>
