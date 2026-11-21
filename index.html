@@ -555,7 +555,7 @@ function bdEventos(v) {
 function uniTienda() {
   if (!U) U = Object.assign({}, UDEF, B.uniforme || {});
   const nuevoModelo = U.modelo !== (B.uniforme || UDEF).modelo, coste = nuevoModelo ? tot(B) * P.precio_uniforme : 0;
-  const sw = k => `<div class="sws">${PAL.map(c => `<button class="sw ${U[k] === c ? 'on' : ''}" data-k="${k}" data-c="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>`;
+  const sw = k => `<div class="sws">${PAL.map(c => `<button class="sw ${U[k] === c ? 'on' : ''}" data-uk="${k}" data-c="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>`;
   const r = document.getElementById('suni');
   r.innerHTML = `<h2>Uniforme</h2><div style="text-align:center">${uniHtml('ed', 190)}</div>
   <div class="lbl">Modelo</div><div class="mods">${[1, 2, 3].map(m => `<button class="md ${U.modelo === m ? 'on' : ''}" data-m="${m}">${uniHtml('m' + m, 62)}<span>${['Botones dorados', 'Corbata y galones', 'Cruzada y cinturón'][m - 1]}</span></button>`).join('')}</div>
@@ -568,7 +568,7 @@ function uniTienda() {
   <button class="of" id="gu" ${nuevoModelo && coste > B.dinero ? 'disabled' : ''}>Guardar uniforme${coste ? ' (' + eur(coste) + ')' : ''}</button>`;
   const redo = () => uniTienda();
   r.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { U.modelo = +b.dataset.m; redo(); });
-  r.querySelectorAll('.sw[data-k]').forEach(b => b.onclick = () => { U[b.dataset.k] = b.dataset.c; redo(); });
+  r.querySelectorAll('.sw[data-uk]').forEach(b => b.onclick = () => { U[b.dataset.uk] = b.dataset.c; redo(); });
   r.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { U.metal = b.dataset.mt; redo(); });
   r.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { U.gorra = b.dataset.g === '1' ? (U.gorra || '#7a1020') : null; redo(); });
   document.getElementById('gu').onclick = async () => {
