@@ -383,6 +383,14 @@ async function pInicio() {
   ect.innerHTML = '<h2>Tus contratos</h2>' + (cs.length ? cs.map(c => `<div class="fila"><div style="flex:1"><b style="display:block">${h(c.hermandades.nombre)}</b><small style="color:var(--gris)">${c.hermandades.jornada}</small></div><span class="pill p2">${c.anios} ${c.anios === 1 ? 'año' : 'años'}</span></div>`).join('') : '<p class="nota" style="margin:0">Todavía no tienes contratos. Presenta ofertas en la pestaña Contratos.</p>');
   ent.className = 'paper'; ent.innerHTML = gaceta(ns, true);
   const mas = document.getElementById('nmas'); if (mas) mas.onclick = verNoticias;
+  const {data: avs} = await sb.from('avisos').select('id,titulo,texto').eq('leido', false).order('id');
+  const antes = document.getElementById('avp'); if (antes) antes.remove();
+  if (avs && avs.length) {
+    const d = document.createElement('section'); d.id = 'avp'; d.style.cssText = 'border-left:5px solid #e8b84a';
+    d.innerHTML = avs.map(x => `<h2>${h(x.titulo)}</h2><p style="margin:0 0 10px">${h(x.texto)}</p>`).join('') + '<button class="b2" id="avok" style="margin-top:4px">Entendido</button>';
+    ent.parentNode.insertBefore(d, ent);
+    document.getElementById('avok').onclick = async () => { await sb.from('avisos').update({leido: true}).in('id', avs.map(x => x.id)); d.remove(); };
+  }
 }
 
 function pTienda() {
@@ -885,10 +893,13 @@ async function pAdmin() {
     ${j.banda ? `<label>Dar (o quitar con signo −)</label><div style="display:flex;gap:8px"><input class="ad" type="number" placeholder="Dinero"><input class="aa" type="number" placeholder="Acciones"></div><button class="b3x" data-a="dar">Aplicar</button><button class="b3x" data-a="banda">Reiniciar su banda</button>` : ''}
     ${j.admin ? '' : '<button class="b3x rojo" data-a="borrar">Borrar usuario</button>'}
   </div></div>`).join('')}</section>
+  <section><h2>Probar pantallas</h2><p class="nota" style="margin:0 0 8px">Crónica de ejemplo, no cambia nada en el juego.</p><button class="b3x" id="pr1">Ver crónica con refugio</button></section>
   <section><h2>Reiniciar el juego</h2><p class="nota" style="margin:0">Borra todas las bandas y sus datos, las noticias y la lluvia de las temporadas, y vuelve a poner el calendario en el día de hoy como primer día de ensayo.</p>
   <label class="opt2"><input type="checkbox" id="rc"> Borrar también todas las cuentas (menos las de administrador)</label>
   <label>Escribe REINICIAR para confirmar</label><input id="rt" autocomplete="off"><button class="b3x rojo" id="rj">Reiniciar el juego</button></section>`;
   const llama = async (fn, args, ok) => { const {error} = await sb.rpc(fn, args); if (error) return aviso(error.message); aviso(''); await pAdmin(); window.scrollTo(0, 0); alert(ok); };
+  document.getElementById('pr1').onclick = () => { const t = (m, n, tx) => ({momento: m, tramo: n, texto: tx, marcha: null, efecto: 1, encaje: null, resultado: 'Positivo'});
+    cronica({decision: 'refugia', llueve: true, prevision: 60, hermandad: 'Hermandad de ejemplo', jornada: 'Lunes Santo', ingresos: 2375, coste: 240, xp: 95, prestigio: 3, satisfaccion: 66, retraso: 5, cansancio: 1, tramos: [t('Salida', 'la salida del templo', 'El paso sale del templo bajo un cielo amenazante.'), t('Recorrido', 'las calles del barrio', 'La banda recorre las calles con el público pendiente de las nubes.'), t('Carrera oficial', 'Sierpes', 'La banda toca por Sierpes mientras empieza a llover.'), t('Recogida', 'la entrada al templo', 'Con las primeras luces, el paso entra de nuevo en el templo.')]}, null, null); };
   v.querySelectorAll('.avj').forEach(d => {
     const id = d.dataset.j, u = d.querySelector('b').textContent;
     d.querySelector('.fila').onclick = () => { const x = d.querySelector('.ajb'); x.hidden = !x.hidden; };
