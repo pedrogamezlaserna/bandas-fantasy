@@ -323,7 +323,7 @@ function reglas(primera) {
     ['La Semana Santa', ic2('<path d="M20 44a10 10 0 010-20 14 14 0 0126-4 10 10 0 012 24z"/><path d="M24 52l-3 6M34 52l-3 6M44 52l-3 6"/>'),
      `En los días de Semana Santa tocas tus jornadas. Mira la <b>previsión de lluvia</b>, pero quien decide es la <b>hermandad</b>: puede salir, recogerse antes, refugiarse o no salir, y tú acatas su decisión.<br><br>Después ves la crónica: salida, recorrido, carrera oficial y recogida. Lo que pase afecta a la satisfacción de la hermandad, a tu cobro y a tu prestigio. Si un día no entras, se resuelve solo y cobras la mitad.`],
     ['Tu banda', ic2('<circle cx="32" cy="22" r="10"/><path d="M12 56c2-14 10-20 20-20s18 6 20 20z"/>'),
-     `Compra músicos y uniformes (${eur((P.precio_musico || 0) + (P.precio_uniforme || 0))} cada uno con su uniforme) y cambia el uniforme y el escudo de tu banda. Tu plantilla máxima crece con el nivel.<br><br>Tu repertorio puede tener hasta <b>${P.max_repertorio || 80} marchas</b>. Monta más desde la tienda o compón las tuyas: las marchas propias dan un extra.`],
+     `Compra músicos y uniformes (${eur((P.precio_musico || 0) + (P.precio_uniforme || 0))} cada uno con su uniforme) y cambia el uniforme (en la tienda) y el escudo (en Mi banda). Tu plantilla máxima crece con el nivel.<br><br>Tu repertorio puede tener hasta <b>${P.max_repertorio || 80} marchas</b>. Monta más desde la tienda o compón las tuyas: las marchas propias dan un extra.`],
     ['Dinero y prestigio', ic2('<circle cx="32" cy="32" r="22"/><path d="M40 23a11 11 0 100 18M22 28h16M22 36h16"/>'),
      `Ganas dinero con los contratos y lo gastas en músicos, uniformes, marchas y refuerzos. Si te quedas sin dinero, no podrás reforzar la banda. Y ojo: cada pocas temporadas, si acumulas mucho dinero, te llegará un <b>gasto extraordinario</b> (obras, seguros, multas…).<br><br>El <b>prestigio</b> y el nivel te colocan en el ranking de bandas. Los jugadores y las bandas ficticias compiten por los mismos contratos: ¡a por ellos!`]
   ];
@@ -545,6 +545,34 @@ function bdEventos(v) {
   };
 }
 
+function uniTienda() {
+  if (!U) U = Object.assign({}, UDEF, B.uniforme || {});
+  const nuevoModelo = U.modelo !== (B.uniforme || UDEF).modelo, coste = nuevoModelo ? tot(B) * P.precio_uniforme : 0;
+  const sw = k => `<div class="sws">${PAL.map(c => `<button class="sw ${U[k] === c ? 'on' : ''}" data-k="${k}" data-c="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div>`;
+  const r = document.getElementById('suni');
+  r.innerHTML = `<h2>Uniforme</h2><div style="text-align:center">${uniHtml('ed', 190)}</div>
+  <div class="lbl">Modelo</div><div class="mods">${[1, 2, 3].map(m => `<button class="md ${U.modelo === m ? 'on' : ''}" data-m="${m}">${uniHtml('m' + m, 62)}<span>${['Botones dorados', 'Corbata y galones', 'Cruzada y cinturón'][m - 1]}</span></button>`).join('')}</div>
+  <div class="lbl">Chaqueta</div>${sw('chaqueta')}<div class="lbl">Pantalón</div>${sw('pantalon')}
+  ${U.modelo >= 2 ? `<div class="lbl">Corbata</div>${sw('corbata')}` : ''}${U.modelo === 3 ? `<div class="lbl">Cinturón</div>${sw('cinturon')}` : ''}
+  <div class="lbl">Botonadura y galones</div><div class="bt"><button class="seg ${U.metal === 'oro' ? 'on' : ''}" data-mt="oro">Oro</button><button class="seg ${U.metal === 'plata' ? 'on' : ''}" data-mt="plata">Plata</button></div>
+  <div class="lbl">Gorra</div><div class="bt"><button class="seg ${!U.gorra ? 'on' : ''}" data-g="0">Sin gorra</button><button class="seg ${U.gorra ? 'on' : ''}" data-g="1">Gorra de plato</button></div>
+  ${U.gorra ? `<div class="lbl">Color de la gorra</div>${sw('gorra')}` : ''}
+  <p class="nota">${nuevoModelo ? `Estrenar este modelo cuesta ${eur(coste)} (${eur(P.precio_uniforme)} por músico).` : 'Cambiar solo los colores es gratis.'} Los demás jugadores ven tu uniforme en tu perfil.</p>
+  <button class="of" id="gu" ${nuevoModelo && coste > B.dinero ? 'disabled' : ''}>Guardar uniforme${coste ? ' (' + eur(coste) + ')' : ''}</button>`;
+  const redo = () => uniTienda();
+  r.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { U.modelo = +b.dataset.m; redo(); });
+  r.querySelectorAll('.sw[data-k]').forEach(b => b.onclick = () => { U[b.dataset.k] = b.dataset.c; redo(); });
+  r.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { U.metal = b.dataset.mt; redo(); });
+  r.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { U.gorra = b.dataset.g === '1' ? (U.gorra || '#7a1020') : null; redo(); });
+  document.getElementById('gu').onclick = async () => {
+    const {error} = await sb.rpc('guardar_uniforme', {p: U});
+    if (error) return aviso(error.message);
+    U = null; await init();
+  };
+  const mapa = {ed: U}; [1, 2, 3].forEach(m => mapa['m' + m] = Object.assign({}, U, {modelo: m, gorra: null}));
+  pintarUnis(mapa, r);
+}
+
 function pTienda() {
   const pr = P.precio_musico + P.precio_uniforme, v = document.getElementById('vista');
   const mx = P.plantilla_base + P.plantilla_nivel * (B.nivel - 1), n0 = tot(B);
@@ -553,8 +581,9 @@ function pTienda() {
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${E.fase !== 'ensayo' || B.acciones < 1 || B.dinero < pr * c || n0 + c > mx || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
   <section><h2>Marchas</h2><p class="nota" style="margin:0">Tienes ${(B.repertorio || []).length} de ${P.max_repertorio || 80} marchas. Cada una cuesta ${eur(P.precio_montaje || 150)} y con 1 acción montas hasta ${P.montajes_por_accion || 2}.</p><button class="of" id="irm">Ver y montar marchas</button><button class="of2" id="irc">Componer una marcha</button></section>
   <section id="sbd"><h2>Banderín</h2>${bdHtml()}</section>
-  <section><h2>Próximamente</h2><p class="nota" style="margin:0">El disco llegará con la temporada. El uniforme y el montaje de marchas están en Mi banda (toca el nombre de tu banda arriba).</p></section>`;
-  bdEventos(v);
+  <section><h2>Próximamente</h2><p class="nota" style="margin:0">El disco llegará con la temporada.</p></section>
+  <section id="suni"></section>`;
+  bdEventos(v); uniTienda();
   document.getElementById('irc').onclick = () => { MBACK = 'tienda'; SUB = {v: 'componer'}; vistaApp(); };
   document.getElementById('irm').onclick = () => { MS = new Set(); MBACK = 'tienda'; SUB = {v: 'montaje'}; vistaApp(); };
   v.querySelectorAll('[data-k]').forEach(b => b.onclick = async () => {
@@ -1179,15 +1208,6 @@ function pMiBanda() {
   <p class="nota">Cambiar el nombre cuesta ${eur(P.precio_cambio_nombre)} y solo puedes hacerlo una vez por temporada.${ya ? ' Esta temporada ya lo has cambiado.' : ''}</p>
   <button class="of" id="gn" ${ya || !full() || full() === B.nombre ? 'disabled' : ''}>Cambiar nombre (${eur(P.precio_cambio_nombre)})</button></section>
   <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${B.escudo === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div><p class="nota">Cambiar de escudo es gratis.</p></section>
-  <section><h2>Uniforme</h2><div style="text-align:center">${uniHtml('ed', 190)}</div>
-  <div class="lbl">Modelo</div><div class="mods">${[1, 2, 3].map(m => `<button class="md ${U.modelo === m ? 'on' : ''}" data-m="${m}">${uniHtml('m' + m, 62)}<span>${['Botones dorados', 'Corbata y galones', 'Cruzada y cinturón'][m - 1]}</span></button>`).join('')}</div>
-  <div class="lbl">Chaqueta</div>${sw('chaqueta')}<div class="lbl">Pantalón</div>${sw('pantalon')}
-  ${U.modelo >= 2 ? `<div class="lbl">Corbata</div>${sw('corbata')}` : ''}${U.modelo === 3 ? `<div class="lbl">Cinturón</div>${sw('cinturon')}` : ''}
-  <div class="lbl">Botonadura y galones</div><div class="bt"><button class="seg ${U.metal === 'oro' ? 'on' : ''}" data-mt="oro">Oro</button><button class="seg ${U.metal === 'plata' ? 'on' : ''}" data-mt="plata">Plata</button></div>
-  <div class="lbl">Gorra</div><div class="bt"><button class="seg ${!U.gorra ? 'on' : ''}" data-g="0">Sin gorra</button><button class="seg ${U.gorra ? 'on' : ''}" data-g="1">Gorra de plato</button></div>
-  ${U.gorra ? `<div class="lbl">Color de la gorra</div>${sw('gorra')}` : ''}
-  <p class="nota">${nuevoModelo ? `Estrenar este modelo cuesta ${eur(coste)} (${eur(P.precio_uniforme)} por músico).` : 'Cambiar solo los colores es gratis.'} Los demás jugadores ven tu uniforme en tu perfil.</p>
-  <button class="of" id="gu" ${nuevoModelo && coste > B.dinero ? 'disabled' : ''}>Guardar uniforme${coste ? ' (' + eur(coste) + ')' : ''}</button></section>
   <section><h2>Repertorio</h2><div class="fila" style="padding-top:0"><div style="flex:1"><b style="display:block">${nm} de ${MAXREP()} marchas</b><small style="color:var(--gris)">${np} propias · el repertorio admite como máximo ${MAXREP()}</small></div></div>
   <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" id="cm">Componer una marcha</button></section>
   <section><h2>Reglas</h2><p class="nota" style="margin:0 0 8px">Un repaso rápido de cómo funciona el juego.</p><button class="of2" id="vrg">Ver las reglas</button></section>
@@ -1208,19 +1228,8 @@ function pMiBanda() {
     if (error) return aviso(error.message);
     await init();
   });
-  v.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { U.modelo = +b.dataset.m; redo(); });
-  v.querySelectorAll('.sw[data-k]').forEach(b => b.onclick = () => { U[b.dataset.k] = b.dataset.c; redo(); });
-  v.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { U.metal = b.dataset.mt; redo(); });
-  v.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { U.gorra = b.dataset.g === '1' ? (U.gorra || '#7a1020') : null; redo(); });
-  document.getElementById('gu').onclick = async () => {
-    const {error} = await sb.rpc('guardar_uniforme', {p: U});
-    if (error) return aviso(error.message);
-    U = null; await init();
-  };
   document.getElementById('cm').onclick = () => { MBACK = 'mibanda'; volver({v: 'componer'}); };
   document.getElementById('mm').onclick = () => { MS = new Set(); MBACK = 'mibanda'; volver({v: 'montaje'}); };
-  const mapa = {ed: U}; [1, 2, 3].forEach(m => mapa['m' + m] = Object.assign({}, U, {modelo: m, gorra: null}));
-  pintarUnis(mapa, v);
 }
 
 let MBACK = 'mibanda', MS = new Set(), MF = 'todas', MT = 'montar', CAT = null;
