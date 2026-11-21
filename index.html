@@ -166,7 +166,7 @@ const traducir = m => ({'Invalid login credentials': 'Usuario o contraseña inco
 const aviso = t => { const e = document.getElementById('aviso'); if (e) { e.textContent = t; e.hidden = !t; } };
 
 function vistaAuth(reg) {
-  app.innerHTML = `<main class="auth"><img class="logo" src="logo.png" width="900" height="445" alt="Bandas Fantasy">
+  app.innerHTML = `<main class="auth"><img class="logo" src="logo.png" width="900" height="445" alt="Bandas Fantasy" onerror="this.outerHTML='<h1 class=&quot;f&quot;>Bandas Fantasy</h1>'">
   <p class="lema">Crea tu banda, gana contratos y compite por la Semana Santa.</p>
   <label for="u">Usuario</label><input id="u" autocomplete="username" autocapitalize="none">
   <label for="p">Contraseña</label><input id="p" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}">
