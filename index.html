@@ -458,7 +458,7 @@ function modalOferta(x) {
   <div class="avo"><b class="f" style="font-size:24px">Solo pagas si ganas</b><br>Si la hermandad elige a otra banda, no se te cobra nada. El dinero queda comprometido, no gastado, hasta el cierre de las 00:00.</div>
   <div id="cl" style="width:100%;max-width:420px;background:rgba(255,255,255,.14);border-radius:14px;padding:14px;text-align:left"></div>
   ${OP.map(([c, t, d, pt]) => `<label class="b3 opt"><input type="checkbox" data-o="${c}"><span><b>${t}</b><br><small>${d}</small></span><span class="pill">+${pt} %</span></label>`).join('')}
-  <p id="rs"></p><button class="b2" id="go2">Presentar oferta</button><button class="b3" id="no" style="text-align:center">Cancelar</button>`);
+  <p id="rsm"></p><button class="b2" id="go2">Presentar oferta</button><button class="b3" id="no" style="text-align:center">Cancelar</button>`);
   const f = c => e.querySelector(`[data-o="${c}"]`).checked;
   const calc = () => {
     const s = OP.filter(o => f(o[0])), co = s.reduce((a, o) => a + o[5], 0), ri = s.reduce((a, o) => a + o[4], 0);
@@ -466,7 +466,7 @@ function modalOferta(x) {
     const pr1 = Math.round(100 * (b0 + (1 - b0) * (w - P.peso_limpia) / w) * (1 - P.dificultad_peso / 100 * (x.dificultad || 50) / 100));
     document.getElementById('cl').innerHTML = s.length ? '<b>Campaña con ofertas</b><br><small>Cada extra aumenta tu peso frente a otras bandas. El % indica cuánto suma frente a una campaña limpia.</small>'
       : '<b>Campaña limpia</b><br><small>No gastas nada y no hay riesgo de polémica, pero tienes menos peso si otra banda también se presenta.</small>';
-    document.getElementById('rs').innerHTML = `Si no hay rivales, tu probabilidad es del ${pr1} %. Si se presentan más bandas, la hermandad elige una de ellas según el peso de cada oferta.<br>Riesgo de polémica: ${ri} %. Dinero comprometido: ${eur(co)} de ${eur(B.dinero)}.`;
+    document.getElementById('rsm').innerHTML = `Si no hay rivales, tu probabilidad es del ${pr1} %. Si se presentan más bandas, la hermandad elige una de ellas según el peso de cada oferta.<br>Riesgo de polémica: ${ri} %. Dinero comprometido: ${eur(co)} de ${eur(B.dinero)}.`;
     document.getElementById('go2').disabled = co > B.dinero;
   };
   e.querySelectorAll('[data-o]').forEach(i => i.onchange = calc); calc();
