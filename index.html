@@ -415,6 +415,7 @@ async function pInicio() {
   const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana';
   const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
   document.getElementById('vista').innerHTML = `
+  ${sem ? '<section id="rsum" hidden></section>' : ''}
   <section>${sem ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. Toca cada jornada cuando quieras. A las 00:00, las que no hayas tocado se resolverán solas y cobrarás solo la mitad de dinero y de experiencia.</p><div id="sj"></div>`
   : `<h2>Día de ensayo</h2><div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
   <div class="dots" aria-hidden="true">${Array.from({length: P.acciones_dia}, (_, i) => `<i class="${i < a ? '' : 'off'}"></i>`).join('')}</div>
@@ -429,7 +430,7 @@ async function pInicio() {
   <div class="fila2"><span>Fúnebre ${p.pf} %</span><span>Alegre ${100 - p.pf} %</span></div>
   <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>`;
   if (!sem) document.getElementById('ens').onclick = ensayar;
-  if (sem) semanaLista();
+  if (sem) { semanaLista(); resumenOfertas(); }
   const [rc, rn] = await Promise.all([sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', B.id), sb.from('noticias').select('id,temporada,texto,creada,categoria').order('id', {ascending: false}).limit(3)]);
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada)), ns = rn.data || [];
   const ect = document.getElementById('ct'), ent = document.getElementById('nt');
@@ -755,6 +756,20 @@ const sigDe = S => { const c = pendiente(S); return c ? {c, prev: S.T[c.hermanda
 const datosActuacion = (a, hm) => ({...a.detalle, decision: a.decision, llueve: a.llueve, prevision: a.prevision, refuerzos: a.refuerzos, ingresos: a.ingresos,
   coste: a.coste, xp: a.xp, prestigio: a.prestigio, satisfaccion: a.satisfaccion, retraso: a.retraso, auto: a.auto, hermandad: hm.nombre, jornada: hm.jornada,
   fuera: hm.ciudad !== 'Sevilla', ciudad: hm.ciudad, viaje: hm.ciudad !== 'Sevilla' ? ((a.detalle && a.detalle.viaje != null) ? a.detalle.viaje : (P.desplazamiento || 400)) : 0});
+
+async function resumenOfertas() {
+  const el = document.getElementById('rsum'); if (!el) return;
+  const {data} = await sb.from('resultados').select('tipo,hermandad,jornada,otra').eq('banda_id', B.id).eq('temporada', E.temporada).order('id');
+  if (!data || !data.length || !document.getElementById('rsum')) return;
+  const g = t => data.filter(x => x.tipo === t), ln = (x, txt) => `<li><b>${h(x.hermandad)}</b> <small style="color:var(--gris)">· ${h(x.jornada)}</small><br><small>${txt}</small></li>`;
+  const bloque = (tit, col, filas) => filas.length ? `<div style="margin-top:10px"><b style="color:${col}">${tit}</b><ul style="margin:4px 0 0;padding-left:18px">${filas.join('')}</ul></div>` : '';
+  const perd = g('perdida').map(x => ln(x, x.otra ? `Se queda con ${h(x.otra)}.` : 'Se ha quedado sin banda.')).concat(g('descartada').map(x => ln(x, 'Tu oferta no era válida: nivel, compatibilidad, dinero o contratos.')));
+  el.hidden = false;
+  el.innerHTML = `<h2>Así quedaron los contratos</h2>
+  ${bloque('Conseguidos', '#14532d', g('ganada').map(x => ln(x, x.otra ? `Se lo quitaste a ${h(x.otra)}.` : 'Estaba libre.')))}
+  ${bloque('No conseguidos', '#7a1020', perd)}
+  ${bloque('Te los han quitado', '#7a1020', g('robada').map(x => ln(x, `Ahora los tiene ${h(x.otra)}.`)))}`;
+}
 
 async function semanaLista() {
   const el = document.getElementById('sj'); if (!el) return;
