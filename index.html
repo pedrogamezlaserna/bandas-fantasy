@@ -48,6 +48,7 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .bt{display:flex;gap:8px}.bt button{padding:0 14px}
 .barra{height:16px;background:var(--oro);border-radius:8px;overflow:hidden}.barra i{display:block;height:100%;background:var(--v2)}
 .fila2{display:flex;justify-content:space-between;margin-top:8px;font-weight:700;font-size:14px}
+.fila2.dc{flex-wrap:wrap;gap:2px 12px}.fila2.dc span:first-child{white-space:nowrap}.fila2.dc span:last-child{margin-left:auto;text-align:right}
 .nav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:4px;background:#fff;border-top:1px solid var(--lin);padding:8px 8px calc(10px + env(safe-area-inset-bottom))}
 .nav button{flex:1;background:none;color:var(--gris);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;min-height:48px;padding:0}
 .nav button.on{background:#efe6f7;color:var(--v)}
@@ -68,7 +69,8 @@ button.link{background:none;color:var(--v2);text-decoration:underline;display:bl
 .est.l{background:#f6efd9;color:var(--tinta);font-weight:700}
 .dots{display:flex;gap:6px;margin:8px 0}.dots i{width:16px;height:16px;border-radius:50%;background:var(--oro);border:2px solid var(--v2)}.dots i.off{background:transparent;border-color:#cfc5d6}
 .xp{height:10px;border-radius:5px;background:#efe9f3;overflow:hidden;margin-top:6px}.xp i{display:block;height:100%;background:var(--oro)}
-.ov{position:fixed;inset:0;z-index:20;background:linear-gradient(160deg,#2a1238,#4a2466);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center;overflow:auto}
+.ov{position:fixed;inset:0;z-index:20;background:linear-gradient(160deg,#2a1238,#4a2466);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:16px;padding:24px;text-align:center;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.ov>:first-child{margin-top:auto}.ov>:last-child{margin-bottom:auto}
 .ov h2{color:var(--oro2);font-size:34px;margin:0}.ov p{max-width:420px;margin:0}
 .beat{width:160px;height:160px;border-radius:50%;border:6px solid var(--oro);transition:background .08s,transform .08s}
 .beat.on{background:var(--oro);transform:scale(1.08)}
@@ -761,11 +763,13 @@ async function resumenOfertas() {
   const el = document.getElementById('rsum'); if (!el) return;
   const {data} = await sb.from('resultados').select('tipo,hermandad,jornada,otra').eq('banda_id', B.id).eq('temporada', E.temporada).order('id');
   if (!data || !data.length || !document.getElementById('rsum')) return;
+  el.hidden = false; el.innerHTML = htmlResumenOfertas(data);
+}
+function htmlResumenOfertas(data) {
   const g = t => data.filter(x => x.tipo === t), ln = (x, txt) => `<li><b>${h(x.hermandad)}</b> <small style="color:var(--gris)">· ${h(x.jornada)}</small><br><small>${txt}</small></li>`;
   const bloque = (tit, col, filas) => filas.length ? `<div style="margin-top:10px"><b style="color:${col}">${tit}</b><ul style="margin:4px 0 0;padding-left:18px">${filas.join('')}</ul></div>` : '';
   const perd = g('perdida').map(x => ln(x, x.otra ? `Se queda con ${h(x.otra)}.` : 'Se ha quedado sin banda.')).concat(g('descartada').map(x => ln(x, 'Tu oferta no era válida: nivel, compatibilidad, dinero o contratos.')));
-  el.hidden = false;
-  el.innerHTML = `<h2>Así quedaron los contratos</h2>
+  return `<h2>Así quedaron los contratos</h2>
   ${bloque('Conseguidos', '#14532d', g('ganada').map(x => ln(x, x.otra ? `Se lo quitaste a ${h(x.otra)}.` : 'Estaba libre.')))}
   ${bloque('No conseguidos', '#7a1020', perd)}
   ${bloque('Te los han quitado', '#7a1020', g('robada').map(x => ln(x, `Ahora los tiene ${h(x.otra)}.`)))}`;
@@ -856,7 +860,7 @@ function cronica(d, sig, S) {
     const pg = pag[i], ultimo = i === pag.length - 1;
     let cuerpo;
     if (pg === 'nosale') cuerpo = `<div class="avo"><b class="f" style="font-size:24px">${d.llueve ? 'Hoy ha llovido en toda la ciudad' : 'No ha llovido, pero la hermandad no ha salido'}</b><br>La previsión era del ${d.prevision} % y la Junta ha decidido no arriesgar.</div>
-      ${(d.otras || []).length ? `<div class="avo"><b>Qué han decidido las demás</b>${d.otras.slice(0, 8).map(o => `<div class="fila2"><span>${h(o.hermandad)}</span><span>${DEC[o.decision] || o.decision}</span></div>`).join('')}</div>` : ''}`;
+      ${(d.otras || []).length ? `<div class="avo"><b>Qué han decidido las demás</b>${d.otras.slice(0, 8).map(o => `<div class="fila2 dc"><span>${h(o.hermandad)}</span><span>${DEC[o.decision] || o.decision}</span></div>`).join('')}</div>` : ''}`;
     else if (pg === 'fin') cuerpo = `<div class="avo"><b class="f" style="font-size:24px">${DEC[d.decision]}</b>
       <div class="fila2"><span>Cobrado</span><span>${eur(d.ingresos)}</span></div>
       ${d.viaje ? `<div class="fila2"><span>Desplazamiento (${h(d.ciudad)})</span><span>−${eur(d.viaje)}</span></div>` : ''}
@@ -876,14 +880,14 @@ function cronica(d, sig, S) {
     const tit = pg === 'fin' ? 'Jornada completada' : pg === 'nosale' ? 'No sale' : pg === 'refugio' ? 'Refugio en la Catedral' : pg === 'vuelta' ? 'La vuelta' : pg;
     const botones = !ultimo ? `<button class="b2" id="sig">${pg === 'refugio' ? 'Entendido, hasta mañana' : pg === 'vuelta' ? 'Ver cómo ha ido la jornada' : 'Siguiente'}</button>`
       : (sig ? `<button class="b2" id="nx">Siguiente contrato (${h(sig.c.hermandades.nombre)} - ${sig.c.hermandades.jornada})</button>`
-             : '<button class="b2" id="rs">Resumen de la Semana Santa</button>') + '<button class="b3" id="cl2" style="text-align:center">Cerrar</button>';
+             : '<button class="b2" id="rsn">Resumen de la Semana Santa</button>') + '<button class="b3" id="cl2" style="text-align:center">Cerrar</button>';
     const ove = ov(`<h2>${tit}</h2><p>${h(d.hermandad)} · ${d.jornada}</p>${cuerpo}${botones}`); pintaBanda(ove);
     const cerrar = () => { document.getElementById('ov').remove(); init(); };
     if (!ultimo) document.getElementById('sig').onclick = () => { i++; pintar(); };
     else {
       document.getElementById('cl2').onclick = cerrar;
       if (sig) document.getElementById('nx').onclick = () => previaJornada(sig.c, sig.prev);
-      else document.getElementById('rs').onclick = async () => resumen(S || await semanaDatos());
+      else document.getElementById("rsn").onclick = async () => resumen(S || await semanaDatos());
     }
   };
   pintar();
@@ -1118,11 +1122,15 @@ async function pAdmin() {
     ${j.banda ? `<label>Dar (o quitar con signo −)</label><div style="display:flex;gap:8px"><input class="ad" type="number" placeholder="Dinero"><input class="aa" type="number" placeholder="Acciones"></div><button class="b3x" data-a="dar">Aplicar</button><button class="b3x" data-a="banda">Reiniciar su banda</button>` : ''}
     ${j.admin ? '' : '<button class="b3x rojo" data-a="borrar">Borrar usuario</button>'}
   </div></div>`).join('')}</section>
-  <section><h2>Probar pantallas</h2><p class="nota" style="margin:0 0 8px">Crónica de ejemplo, no cambia nada en el juego.</p><button class="b3x" id="pr1">Ver crónica con refugio</button></section>
+  <section><h2>Probar pantallas</h2><p class="nota" style="margin:0 0 8px">Crónica de ejemplo, no cambia nada en el juego.</p><button class="b3x" id="pr1">Ver crónica con refugio</button><button class="b3x" id="pr2" style="margin-top:8px">Ver resumen de contratos</button></section>
   <section><h2>Reiniciar el juego</h2><p class="nota" style="margin:0">Borra todas las bandas y sus datos, las noticias y la lluvia de las temporadas, y vuelve a poner el calendario en el día de hoy como primer día de ensayo.</p>
   <label class="opt2"><input type="checkbox" id="rc"> Borrar también todas las cuentas (menos las de administrador)</label>
   <label>Escribe REINICIAR para confirmar</label><input id="rt" autocomplete="off"><button class="b3x rojo" id="rj">Reiniciar el juego</button></section>`;
   const llama = async (fn, args, ok) => { const {error} = await sb.rpc(fn, args); if (error) return aviso(error.message); aviso(''); await pAdmin(); window.scrollTo(0, 0); alert(ok); };
+  document.getElementById('pr2').onclick = () => {
+    const e = ov(`<div class="avo">${htmlResumenOfertas([{tipo: 'ganada', hermandad: 'Pino Montano (Sevilla)', jornada: 'Lunes Santo', otra: 'Banda Rival'}, {tipo: 'ganada', hermandad: 'El Museo (Sevilla)', jornada: 'Martes Santo', otra: null}, {tipo: 'perdida', hermandad: 'San Pablo (Sevilla)', jornada: 'Miércoles Santo', otra: 'Cruz Roja'}, {tipo: 'descartada', hermandad: 'El Cerro (Sevilla)', jornada: 'Jueves Santo', otra: null}, {tipo: 'robada', hermandad: 'La Paz (Sevilla)', jornada: 'Viernes Santo', otra: 'Los Gitanos'}])}</div><p class="nota">Ejemplo con datos inventados.</p><button class="b2" id="okp">Cerrar</button>`);
+    document.getElementById('okp').onclick = () => e.remove();
+  };
   document.getElementById('pr1').onclick = () => { const t = (m, n, tx) => ({momento: m, tramo: n, texto: tx, marcha: null, efecto: 1, encaje: null, resultado: 'Positivo'});
     cronica({decision: 'refugia', llueve: true, prevision: 60, hermandad: 'Hermandad de ejemplo', jornada: 'Lunes Santo', ingresos: 2375, coste: 240, xp: 95, prestigio: 3, satisfaccion: 66, retraso: 5, cansancio: 1, tramos: [t('Salida', 'la salida del templo', 'El paso sale del templo bajo un cielo amenazante.'), t('Recorrido', 'las calles del barrio', 'La banda recorre las calles con el público pendiente de las nubes.'), t('Carrera oficial', 'Sierpes', 'La banda toca por Sierpes mientras empieza a llover.'), t('Recogida', 'la entrada al templo', 'Con las primeras luces, el paso entra de nuevo en el templo.')]}, null, null); };
   v.querySelectorAll('.avj').forEach(d => {
