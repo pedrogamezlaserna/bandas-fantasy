@@ -1118,6 +1118,7 @@ async function pAdmin() {
   <div class="fila2"><span>Cuentas / bandas</span><span>${est.cuentas} / ${est.bandas}</span></div></section>
   <section><h2>Jugadores</h2>${js.map(j => `<div class="avj" data-j="${j.id}"><div class="fila" style="margin:0"><div style="flex:1;min-width:0"><b>${h(j.usuario)}</b>${j.admin ? ' <span class="pill" style="background:var(--oro2)">Admin</span>' : ''}<small style="display:block;color:var(--gris)">${j.banda ? h(j.banda) + ' · nivel ' + j.nivel + ' · ' + eur(j.dinero) + ' · ' + j.acciones + ' acciones' : 'Sin banda'}</small><small style="display:block;color:var(--gris)">${j.correo ? h(j.correo) : 'Sin correo'} · Última conexión: ${f(j.ultima)}</small></div></div>
   <div class="ajb" hidden>
+    <label>Cambiar nombre de usuario</label><input class="au" placeholder="Nuevo usuario (sin tildes ni espacios)" autocapitalize="none" autocomplete="off"><button class="b3x" data-a="usuario">Cambiar usuario</button>
     <label>Nueva contraseña</label><input class="ac" placeholder="Mínimo 6 caracteres"><button class="b3x" data-a="clave">Cambiar contraseña</button>
     ${j.banda ? `<label>Dar (o quitar con signo −)</label><div style="display:flex;gap:8px"><input class="ad" type="number" placeholder="Dinero"><input class="aa" type="number" placeholder="Acciones"></div><button class="b3x" data-a="dar">Aplicar</button><button class="b3x" data-a="banda">Reiniciar su banda</button>` : ''}
     ${j.admin ? '' : '<button class="b3x rojo" data-a="borrar">Borrar usuario</button>'}
@@ -1138,6 +1139,7 @@ async function pAdmin() {
     d.querySelector('.fila').onclick = () => { const x = d.querySelector('.ajb'); x.hidden = !x.hidden; };
     d.querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
       const a = b.dataset.a;
+      if (a === 'usuario') { const n = d.querySelector('.au').value.trim().toLowerCase(); if (!n) return aviso('Escribe el nuevo usuario.'); if (!confirm(`¿Cambiar el usuario de ${u} a ${n}? Tendrá que entrar con el nombre nuevo.`)) return; return llama('admin_usuario', {p_id: id, p_usuario: n}, `Ahora es ${n}.`); }
       if (a === 'clave') { const c = d.querySelector('.ac').value; return llama('admin_clave', {p_id: id, p_clave: c}, `Contraseña de ${u} cambiada.`); }
       if (a === 'dar') return llama('admin_dar', {p_id: id, p_dinero: parseInt(d.querySelector('.ad').value) || 0, p_acciones: parseInt(d.querySelector('.aa').value) || 0}, 'Hecho.');
       if (a === 'banda' && confirm(`¿Reiniciar la banda de ${u}? Se borra y tendrá que crear otra.`)) return llama('admin_reiniciar_banda', {p_id: id}, 'Banda reiniciada.');
