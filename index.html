@@ -157,7 +157,7 @@ const SEC = {
   percusion: ['Percusión', 30, '<circle cx="8" cy="13" r="5"/><circle cx="17" cy="9" r="4"/>'],
   madera: ['Viento madera', 0, '<path d="M4 20L20 4"/><circle cx="9" cy="15" r=".8"/><circle cx="12" cy="12" r=".8"/><circle cx="15" cy="9" r=".8"/>'],
   metal: ['Viento metal', 70, '<path d="M3 11h9M3 13h9M12 8l8-3v14l-8-3z"/>']};
-const NAV = [['inicio', 'Inicio', '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>'], ['contratos', 'Contratos', '<path d="M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6"/>'], ['tienda', 'Tienda', '<path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 016 0v2"/>'], ['ranking', 'Ranking', '<path d="M8 4h8v5a4 4 0 01-8 0zM8 6H4v1a4 4 0 004 4M16 6h4v1a4 4 0 01-4 4M12 13v4M8 20h8"/>']];
+const NAV = [['inicio', 'Inicio', '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>'], ['contratos', 'Contratos', '<path d="M7 3h8l4 4v14H7zM15 3v4h4M10 12h6M10 16h6"/>'], ['tienda', 'Tienda', '<path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 016 0v2"/>'], ['ranking', 'Ranking', '<path d="M8 4h8v5a4 4 0 01-8 0zM8 6H4v1a4 4 0 004 4M16 6h4v1a4 4 0 01-4 4M12 13v4M8 20h8"/>'], ['libre', 'Juegos', '<path d="M9 18V6l10-2v12M9 18a3 3 0 11-6 0 3 3 0 016 0zM19 16a3 3 0 11-6 0 3 3 0 016 0z"/>']];
 const h = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const eur = n => Number(n).toLocaleString('es-ES') + ' €';
 const tot = b => Object.keys(SEC).reduce((a, k) => a + b[k], 0);
@@ -344,7 +344,7 @@ function reglas(primera) {
     ['El calendario', ic2('<rect x="10" y="14" width="44" height="40" rx="5"/><path d="M10 26h44M22 8v10M42 8v10M22 36h6M36 36h6M22 46h6"/>'),
      `Los días se alternan: un día es de <b>ensayo</b> y el siguiente de <b>Semana Santa</b>. Cada pareja de días es una temporada.<br><br>El juego sigue su ritmo aunque no entres: al cierre de cada día (a las 00:00) se resuelve todo.`],
     ['Los ensayos', ic2('<circle cx="32" cy="32" r="22"/><path d="M32 20v12l9 6"/>'),
-     `En los días de ensayo tienes <b>${P.acciones_dia || 6} acciones</b>. Cada ensayo gasta una y te pone a prueba con un minijuego: el pulso, la afinación, marcar el paso o repetir la frase. A veces surge un imprevisto.<br><br>Ganas experiencia (xp) y subes de nivel. Cuanto más ensayes antes de la Semana Santa, mejor saldrá la actuación.`],
+     `En los días de ensayo tienes <b>${P.acciones_dia || 6} acciones</b>. Cada ensayo gasta una y te pone a prueba con un minijuego: el pulso, la afinación, marcar el paso, repetir la frase o correr hacia el templo. A veces surge un imprevisto.<br><br>Ganas experiencia (xp) y subes de nivel. Cuanto más ensayes antes de la Semana Santa, mejor saldrá la actuación.`],
     ['Los contratos', ic2('<path d="M18 6h22l10 10v42H18z"/><path d="M40 6v10h10M24 28h20M24 38h20M24 48h12"/>'),
      `Los días de ensayo presentas <b>ofertas</b> a las hermandades, hasta ${P.max_ofertas || 5} cada vez. Puedes mejorar tu oferta con una rebaja, un regalo o una saya, y ordenarlas por prioridad. Cuántos contratos puedes tener a la vez depende de tu nivel: 3 al empezar y hasta 10 en los niveles más altos.<br><br>También hay hermandades de <b>otras ciudades</b> (Utrera, Écija, Carmona…): se consiguen igual y pagan lo mismo, pero cada jornada te cuesta ${eur(P.desplazamiento || 400)} de desplazamiento y allí no hay carrera oficial. Cuentan dentro de tu cupo.<br><br>Al cierre del día las hermandades eligen. Los contratos ganados se renuevan por años, y cada hermandad paga según su categoría.`],
     ['La Semana Santa', ic2('<path d="M20 44a10 10 0 010-20 14 14 0 0126-4 10 10 0 012 24z"/><path d="M24 52l-3 6M34 52l-3 6M44 52l-3 6"/>'),
@@ -386,7 +386,7 @@ function vistaApp() {
   document.getElementById('hq').onclick = () => { SUB = {v: 'mibanda'}; vistaApp(); };
   window.scrollTo(0, 0);
   document.getElementById('salir').onclick = async () => { await sb.auth.signOut(); B = null; vistaAuth(false); };
-  (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico, componer: pComponer}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking, admin: pAdmin}[tab])();
+  (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico, componer: pComponer}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking, libre: pLibre, admin: pAdmin}[tab])();
 }
 
 
@@ -607,7 +607,7 @@ function pTienda() {
   v.innerHTML = `<section><h2>Músicos</h2><p class="nota" style="margin:0">Cada músico cuesta ${eur(pr)} con su uniforme. Cada compra gasta 1 acción (te quedan ${B.acciones}).</p>
   <p class="nota" style="margin:4px 0 4px">Plantilla: ${n0} de ${mx} (máximo de tu nivel).</p>
   ${Object.entries(SEC).map(([k, [n, , d]]) => `<div class="fila"><div class="tile">${ic(d)}</div><b>${n} <small style="color:var(--gris);font-weight:600">(${B[k]}${tope(k) < Infinity ? '/' + tope(k) : ''})</small></b><span class="bt">${[1, 5].map(c => `<button data-k="${k}" data-c="${c}" ${E.fase !== 'ensayo' || B.acciones < 1 || B.dinero < pr * c || n0 + c > mx || B[k] + c > tope(k) ? 'disabled' : ''}>+${c}</button>`).join('')}</span></div>`).join('')}</section>
-  <section><h2>Marchas</h2><p class="nota" style="margin:0">Tienes ${(B.repertorio || []).length} de ${P.max_repertorio || 80} marchas. Cada una cuesta ${eur(P.precio_montaje || 150)} y con 1 acción montas hasta ${P.montajes_por_accion || 2}.</p><button class="of" id="irm">Ver y montar marchas</button><button class="of2" id="irc">Componer una marcha</button></section>
+  <section><h2>Marchas</h2><p class="nota" style="margin:0">Tienes ${(B.repertorio || []).length} de ${P.max_repertorio || 80} marchas. Cada una cuesta ${eur(P.precio_montaje || 300)}, no gasta acciones y puedes montar hasta ${P.montajes_dia || 10} al día.</p><button class="of" id="irm">Ver y montar marchas</button><button class="of2" id="irc">Componer una marcha</button></section>
   <section id="sbd"><h2>Banderín</h2>${bdHtml()}</section>
   <section><h2>Próximamente</h2><p class="nota" style="margin:0">El disco llegará con la temporada.</p></section>
   <section id="suni"></section>`;
@@ -765,10 +765,11 @@ async function resumenOfertas() {
   if (!data || !data.length || !document.getElementById('rsum')) return;
   el.hidden = false; el.innerHTML = htmlResumenOfertas(data);
 }
+const MOTIVO = {maximo: 'No la necesitabas: ya tenías el máximo de contratos.', dia: 'Ya tenías otro contrato ese día.', nivel: 'Tu nivel ya no llegaba al mínimo.', compat: 'Tu compatibilidad ya no llegaba al mínimo.', dinero: 'No te llegaba el dinero para la oferta.'};
 function htmlResumenOfertas(data) {
   const g = t => data.filter(x => x.tipo === t), ln = (x, txt) => `<li><b>${h(x.hermandad)}</b> <small style="color:var(--gris)">· ${h(x.jornada)}</small><br><small>${txt}</small></li>`;
   const bloque = (tit, col, filas) => filas.length ? `<div style="margin-top:10px"><b style="color:${col}">${tit}</b><ul style="margin:4px 0 0;padding-left:18px">${filas.join('')}</ul></div>` : '';
-  const perd = g('perdida').map(x => ln(x, x.otra ? `Se queda con ${h(x.otra)}.` : 'Se ha quedado sin banda.')).concat(g('descartada').map(x => ln(x, 'Tu oferta no era válida: nivel, compatibilidad, dinero o contratos.')));
+  const perd = g('perdida').map(x => ln(x, x.otra ? `Se queda con ${h(x.otra)}.` : 'Se ha quedado sin banda.')).concat(g('descartada').map(x => ln(x, MOTIVO[x.motivo] || 'Tu oferta no era válida.')));
   return `<h2>Así quedaron los contratos</h2>
   ${bloque('Conseguidos', '#14532d', g('ganada').map(x => ln(x, x.otra ? `Se lo quitaste a ${h(x.otra)}.` : 'Estaba libre.')))}
   ${bloque('No conseguidos', '#7a1020', perd)}
@@ -946,19 +947,125 @@ function mjShell(titulo, sub, cuerpo, onSkip) {
 }
 const hecho = (acaba) => { let ya = false; return async sc => {
   if (ya) return; ya = true; acaba && acaba();
+  if (LIBRE) { LIBRE = false; const o = document.getElementById('ov'); o && o.remove(); const e = ov(`<h2>Juegos</h2><p>Puntuación: ${sc} de 100.</p><p class="nota">Aquí no se gana experiencia ni se gastan acciones.</p><button class="b2" id="okl">Continuar</button>`); document.getElementById('okl').onclick = () => e.remove(); return; }
   const {data, error} = await sb.rpc('ensayar_pulso', {p_puntuacion: sc});
   if (error) { const o = document.getElementById('ov'); o && o.remove(); return aviso(error.message); }
   fin('Ensayo terminado', `Puntuación: ${sc} de 100. Ganas ${data} xp.`);
 }; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+let LIBRE = false;
+function pLibre() {
+  const v = document.getElementById('vista');
+  const J = [['El pulso', 'Toca el bombo justo cuando el aro llegue al círculo.', pulso], ['Afinación', 'Para la aguja en la zona verde, ronda a ronda.', afinacion], ['Marcar el paso', 'Toca el pie que se ilumina, izquierdo o derecho.', paso], ['Repetir la frase', 'Escucha la frase y repítela en el mismo orden.', frase], ['A toda prisa al templo', 'Corre bajo la lluvia, salta y agáchate hasta llegar a la iglesia.', carrera]];
+  v.innerHTML = `<section><h2>Juegos</h2><p class="nota" style="margin:0">Juega a los minijuegos del ensayo cuando quieras y las veces que quieras. Aquí no se gana experiencia ni se gastan acciones: es solo para practicar o pasar el rato. Está disponible tanto en ensayo como en Semana Santa.</p></section>
+  <section>${J.map(([t, d], i) => `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${t}</b><small style="color:var(--gris)">${d}</small></div><button class="of" data-j="${i}" style="width:auto;padding:0 16px;margin:0;height:40px">Jugar</button></div>`).join('')}</section>`;
+  v.querySelectorAll('[data-j]').forEach(b => b.onclick = () => { LIBRE = true; ctxA(); J[+b.dataset.j][2](); });
+}
 
 async function ensayar() {
+  LIBRE = false;
   if (E.fase !== 'ensayo') return aviso('Hoy es día de Semana Santa.');
   if (B.acciones < 1) return aviso('No te quedan acciones hoy.');
   ctxA();
   if (!IMP) { const {data} = await sb.from('imprevistos').select('*').order('id'); IMP = data || []; }
   if (IMP.length && Math.random() < 0.3) return imprevisto(IMP[Math.floor(Math.random() * IMP.length)]);
-  [pulso, afinacion, paso, frase][Math.floor(Math.random() * 4)]();
+  [pulso, afinacion, paso, frase, carrera][Math.floor(Math.random() * 5)]();
+}
+
+
+// ---- 5. A toda prisa al templo (corredor)
+function carrera() {
+  const W = 360, H = 340, G = 268, L = 16500, RX = 64;
+  const U = Object.assign({}, UDEF, B.uniforme || {});
+  let vivo = true, raf = 0, last = 0, t = 0, dist = 0, y = 0, vy = 0, agach = false, notas = 0, fase = 'corre', finT = 0, msgT = 0;
+  const obs = [], nts = []; let proximo = 700, pasos = 0;
+  const TIPOS_O = [{n: 'charco', w: 44, h: 8, y: 0}, {n: 'bordillo', w: 26, h: 22, y: 0}, {n: 'cirio', w: 9, h: 28, y: 0}, {n: 'cubo', w: 20, h: 26, y: 0}, {n: 'bajo', w: 60, h: 34, y: 38}];
+  const enviar = hecho(() => { vivo = false; cancelAnimationFrame(raf); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); });
+  const e = mjShell('A toda prisa al templo', 'Llueve y tienes que llegar a la iglesia. Salta los charcos y obstáculos, agáchate bajo toldos y banderolas, y recoge notas. Dónde llegues decide tu puntuación.',
+    `<div class="stg" style="height:340px;padding:0"><canvas id="cv" width="${W * 2}" height="${H * 2}" style="width:100%;height:100%;display:block;touch-action:none"></canvas></div>
+    <div class="mjb" style="margin-top:8px"><button class="of" id="bsal" style="height:64px;margin:0">Saltar</button><button class="of2" id="bag" style="height:64px;margin:0">Agacharse</button></div>`,
+    () => enviar(30));
+  const cv = document.getElementById('cv'), c = cv.getContext('2d'); c.scale(2, 2);
+  const salta = () => { if (fase === 'corre' && y === 0 && !agach) { vy = 640; snd('bombo'); } };
+  const bajar = v => { if (fase === 'corre') agach = v && y === 0; };
+  const kd = ev => { if (ev.code === 'Space' || ev.code === 'ArrowUp') { ev.preventDefault(); salta(); } if (ev.code === 'ArrowDown') { ev.preventDefault(); bajar(true); } };
+  const ku = ev => { if (ev.code === 'ArrowDown') bajar(false); };
+  window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
+  document.getElementById('bsal').onpointerdown = salta;
+  const bg = document.getElementById('bag'); bg.onpointerdown = () => bajar(true); bg.onpointerup = bg.onpointerleave = bg.onpointercancel = () => bajar(false);
+  const velo = () => 210 + 2.2 * t;
+  const genera = () => {
+    while (proximo < dist + 700 && proximo < L - 900) {
+      const tp = Math.random() < 0.22 ? TIPOS_O[4] : TIPOS_O[Math.floor(Math.random() * 4)];
+      obs.push({x: proximo, ...tp});
+      if (Math.random() < 0.75) nts.push({x: proximo + tp.w + 90, y: Math.random() < 0.5 ? G - 30 : G - 92, c: false});
+      proximo += velo() * 0.95 + 90 + Math.random() * 240;
+    }
+  };
+  const caja = () => agach ? {x: RX - 9, y: G - y - 24, w: 18, h: 24} : {x: RX - 9, y: G - y - 42, w: 18, h: 42};
+  const choca = (a, b) => a.x + 4 < b.x + b.w && a.x + a.w - 4 > b.x && a.y + 3 < b.y + b.h && a.y + a.h - 3 > b.y;
+  const puntuacion = () => Math.round(Math.min(100, Math.min(1, dist / L) * 85 + Math.min(15, notas * 0.8)));
+  const fondo = () => {
+    const gr = c.createLinearGradient(0, 0, 0, G); gr.addColorStop(0, '#2a1238'); gr.addColorStop(1, '#6b3d86'); c.fillStyle = gr; c.fillRect(0, 0, W, H);
+    const off = (dist * 0.15) % 260;
+    for (let k = -1; k < 3; k++) {
+      const x = k * 260 - off + 40; c.fillStyle = '#3a1d4e';
+      c.fillRect(x, G - 150, 22, 150); c.fillRect(x - 3, G - 158, 28, 8); c.fillRect(x + 4, G - 178, 14, 20); c.beginPath(); c.arc(x + 11, G - 178, 7, Math.PI, 0); c.fill();
+      c.fillRect(x + 80, G - 70, 110, 70); c.fillRect(x + 80, G - 78, 110, 8);
+      c.fillStyle = '#f4d98c55'; c.fillRect(x + 94, G - 52, 12, 16); c.fillRect(x + 130, G - 52, 12, 16); c.fillRect(x + 166, G - 52, 12, 16);
+    }
+    c.fillStyle = '#2b1a2e'; c.fillRect(0, G, W, H - G); c.fillStyle = '#4a2e4e'; c.fillRect(0, G, W, 4);
+    c.fillStyle = '#3d2740'; const o2 = dist % 40; for (let x = -o2; x < W; x += 40) c.fillRect(x, G + 14, 22, 3);
+  };
+  const lluvia = () => {
+    c.strokeStyle = 'rgba(200,215,255,.45)'; c.lineWidth = 1; c.beginPath();
+    for (let i = 0; i < 40; i++) { const x = (i * 97 + t * 420) % (W + 40) - 20, yy = (i * 53 + t * 560) % H; c.moveTo(x, yy); c.lineTo(x - 4, yy + 12); }
+    c.stroke();
+    const gr = c.createLinearGradient(0, 0, 90, 0); gr.addColorStop(0, 'rgba(10,6,20,.85)'); gr.addColorStop(1, 'rgba(10,6,20,0)'); c.fillStyle = gr; c.fillRect(0, 0, 90, G);
+  };
+  const iglesia = () => {
+    const x = RX + (L - dist) + 40; if (x > W + 200) return;
+    c.fillStyle = '#d9c9a0'; c.fillRect(x, G - 120, 150, 120); c.fillRect(x - 20, G - 150, 40, 150); c.fillStyle = '#b9a578'; c.beginPath(); c.moveTo(x - 24, G - 150); c.lineTo(x, G - 190); c.lineTo(x + 24, G - 150); c.fill();
+    c.fillStyle = '#5a3a1a'; c.beginPath(); c.moveTo(x + 50, G); c.lineTo(x + 50, G - 60); c.arc(x + 75, G - 60, 25, Math.PI, 0); c.lineTo(x + 100, G); c.fill();
+    c.fillStyle = '#e8c34a'; c.fillRect(x + 73, G - 134, 4, 22); c.fillRect(x + 66, G - 127, 18, 4);
+  };
+  const corredor = () => {
+    const x = RX, yy = G - y, ag = agach && y === 0;
+    c.fillStyle = U.pantalon; const pa = Math.sin(t * 16) * 6; if (y > 0) { c.fillRect(x - 7, yy - 14, 6, 14); c.fillRect(x + 2, yy - 14, 6, 10); } else if (ag) { c.fillRect(x - 8, yy - 8, 16, 8); } else { c.fillRect(x - 7 + pa / 2, yy - 16, 6, 16); c.fillRect(x + 2 - pa / 2, yy - 16, 6, 16); }
+    c.fillStyle = U.chaqueta; ag ? c.fillRect(x - 10, yy - 22, 22, 15) : c.fillRect(x - 9, yy - 38, 18, 24);
+    c.fillStyle = '#e6c29a'; c.beginPath(); c.arc(x + (ag ? 6 : 0), yy - (ag ? 27 : 44), 7, 0, 7); c.fill();
+    if (U.gorra) { c.fillStyle = U.gorra; c.fillRect(x - 8 + (ag ? 6 : 0), yy - (ag ? 36 : 53), 16, 5); }
+    c.fillStyle = '#e8c34a'; c.fillRect(x + 8, yy - (ag ? 20 : 34), 10, 4);
+  };
+  const pinta = () => {
+    fondo(); iglesia();
+    obs.forEach(o => { const x = RX + o.x - dist; if (x < -80 || x > W + 20) return;
+      if (o.n === 'bajo') { c.fillStyle = '#7a1020'; c.fillRect(x, G - o.y - o.h, o.w, o.h); c.fillStyle = '#e8c34a'; for (let i = 0; i < 4; i++) c.fillRect(x + 4 + i * 15, G - o.y - 6, 8, 6); c.fillStyle = '#9aa'; c.fillRect(x + 28, G - o.y - o.h - 30, 3, 30); }
+      else if (o.n === 'charco') { c.fillStyle = '#6a8ec8'; c.beginPath(); c.ellipse(x + o.w / 2, G + 3, o.w / 2, 6, 0, 0, 7); c.fill(); }
+      else if (o.n === 'cirio') { c.fillStyle = '#f2e8cc'; c.fillRect(x, G - o.h, o.w, o.h); c.fillStyle = '#ffb347'; c.beginPath(); c.arc(x + o.w / 2, G - o.h - 4, 4, 0, 7); c.fill(); }
+      else if (o.n === 'cubo') { c.fillStyle = '#8a8a96'; c.fillRect(x, G - o.h, o.w, o.h); c.fillStyle = '#6a8ec8'; c.fillRect(x + 2, G - o.h, o.w - 4, 5); }
+      else { c.fillStyle = '#9a9aa6'; c.fillRect(x, G - o.h, o.w, o.h); } });
+    nts.forEach(n => { if (n.c) return; const x = RX + n.x - dist; if (x < -20 || x > W + 20) return; c.fillStyle = '#f4d98c'; c.font = '22px sans-serif'; c.fillText('♪', x - 6, n.y); });
+    corredor(); lluvia();
+    c.fillStyle = '#0006'; c.fillRect(14, 12, 332, 10); c.fillStyle = '#e8c34a'; c.fillRect(14, 12, 332 * Math.min(1, dist / L), 10);
+    c.fillStyle = '#fff'; c.font = '700 13px Manrope,sans-serif'; c.fillText('♪ ' + notas, 14, 40);
+    if (msgT) { c.textAlign = 'center'; c.font = '700 22px Manrope,sans-serif'; c.fillStyle = '#000a'; c.fillRect(30, 120, 300, 56); c.fillStyle = '#f4d98c'; c.fillText(fase === 'llega' ? '¡Has llegado al templo!' : `Te quedas en el ${Math.round(100 * dist / L)} %`, 180, 156); c.textAlign = 'left'; }
+  };
+  const tick = ts => {
+    if (!vivo) return;
+    const dt = Math.min(0.033, (ts - (last || ts)) / 1000); last = ts;
+    if (fase === 'corre') {
+      t += dt; dist += velo() * dt; genera();
+      if (y > 0 || vy > 0) { vy -= 1900 * dt; y += vy * dt; if (y <= 0) { y = 0; vy = 0; } }
+      if (y > 0) agach = false;
+      const me = caja();
+      obs.forEach(o => { if (fase !== 'corre') return; if (choca(me, {x: RX + o.x - dist, y: G - o.y - o.h, w: o.w, h: o.h})) { fase = 'cae'; msgT = 1; finT = 1.6; snd('mal'); } });
+      nts.forEach(n => { if (!n.c && choca(me, {x: RX + n.x - dist - 6, y: n.y - 18, w: 16, h: 20})) { n.c = true; notas++; snd('ok'); } });
+      if (dist >= L) { fase = 'llega'; msgT = 1; finT = 1.6; }
+    } else { finT -= dt; if (fase === 'llega') dist = Math.min(L + 60, dist + 120 * dt); if (finT <= 0) { vivo = false; return enviar(puntuacion()); } }
+    pinta(); raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
 }
 
 // ---- 1. El pulso (bombo)
@@ -1291,7 +1398,7 @@ async function pMontaje() {
     if (error) return aviso(error.message);
     CAT = data;
   }
-  const mias = new Set((B.repertorio || []).map(r => r.marcha_id)), nrep = mias.size, max = MAXREP(), por = P.montajes_por_accion || 2, pr = P.precio_montaje || 150;
+  const mias = new Set((B.repertorio || []).map(r => r.marcha_id)), nrep = mias.size, max = MAXREP(), por = Math.max(0, (P.montajes_dia || 10) - (B.montadas_hoy || 0)), pr = P.precio_montaje || 300;
   const ens = E.fase === 'ensayo', n = MS.size, libres = max - nrep;
   const base = CAT.filter(m => MT === 'montar' ? !m.propia_de : MT === 'pro' ? mias.has(m.id) && m.propia_de : mias.has(m.id));
   const lista = base.filter(m => MF === 'todas' || (MF === 'fun' ? m.estilo === 'Fúnebre' : m.estilo === 'Alegre'));
@@ -1301,17 +1408,17 @@ async function pMontaje() {
     return `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${h(m.titulo)}</b><small style="color:var(--gris)">${m.propia_de ? 'Propia' + (m.dedicatoria ? ' · ' + h(m.dedicatoria) : '') : h(m.compositor || '')}</small></div><span class="pill ${m.estilo === 'Fúnebre' ? 'p2' : ''}">${m.estilo}</span>${btn}</div>`;
   };
   v.innerHTML = `<section style="background:linear-gradient(160deg,#2a1238,#4a2466);color:#fff"><div class="res"><div><span class="num" style="color:var(--oro2)">${nrep}</span><small style="color:#d8c9e3">marchas en repertorio</small></div><div><span class="num" style="color:var(--oro2)">${max}</span><small style="color:#d8c9e3">máximo en repertorio</small></div></div>
-  <p class="nota" style="color:#d8c9e3;margin-top:10px">Cada marcha cuesta ${eur(pr)} y con 1 acción montas hasta ${por}. Solo en día de ensayo (te quedan ${B.acciones} acciones).</p></section>
+  <p class="nota" style="color:#d8c9e3;margin-top:10px">Cada marcha cuesta ${eur(pr)} y no gasta acciones. Puedes montar hasta ${P.montajes_dia || 10} al día (hoy te quedan ${por}). Solo en día de ensayo.</p></section>
   <div class="tabs3"><button class="${MT === 'montar' ? 'on' : ''}" data-mt="montar">Montar</button><button class="${MT === 'mi' ? 'on' : ''}" data-mt="mi">Mi repertorio</button><button class="${MT === 'pro' ? 'on' : ''}" data-mt="pro">Propias</button></div>
   <section><div class="bt" style="margin-bottom:8px">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, t]) => `<button class="seg ${MF === k ? 'on' : ''}" data-f="${k}">${t}</button>`).join('')}</div>
   ${lista.map(fila).join('') || (MT === 'pro' ? '<p class="nota">Todavía no has compuesto ninguna marcha.</p>' : '<p class="nota">No hay marchas.</p>')}
-  <p class="nota">${CAT.filter(m => !m.propia_de).length} marchas en el catálogo · te caben ${libres} más · máximo ${por} por acción</p></section>
+  <p class="nota">${CAT.filter(m => !m.propia_de).length} marchas en el catálogo · te caben ${libres} más · hoy puedes montar ${por} más</p></section>
   <button class="of2" id="vb">${MBACK === 'tienda' ? 'Volver a la Tienda' : 'Volver a Mi banda'}</button>
-  ${MT === 'montar' ? `<div class="barra-fija"><button class="of" id="mn" ${!n || !ens || B.acciones < 1 || B.dinero < n * pr || n > libres ? 'disabled' : ''}>${n ? `Montar ${n} marcha${n > 1 ? 's' : ''} (1 acción · ${eur(n * pr)})` : 'Elige hasta ' + por + ' marchas'}</button></div>` : ''}`;
+  ${MT === 'montar' ? `<div class="barra-fija"><button class="of" id="mn" ${!n || !ens || B.dinero < n * pr || n > libres || n > por ? 'disabled' : ''}>${n ? `Montar ${n} marcha${n > 1 ? 's' : ''} (${eur(n * pr)})` : 'Elige las marchas que quieras (hoy hasta ' + por + ')'}</button></div>` : ''}`;
   v.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { MT = b.dataset.mt; pMontaje(); });
   v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { MF = b.dataset.f; pMontaje(); });
   v.querySelectorAll('[data-id]').forEach(b => b.onclick = () => {
-    const id = +b.dataset.id; if (MS.has(id)) MS.delete(id); else { if (MS.size >= por) return aviso('Solo puedes elegir ' + por + ' marchas por acción.'); MS.add(id); }
+    const id = +b.dataset.id; if (MS.has(id)) MS.delete(id); else { if (MS.size >= por) return aviso('Hoy solo puedes montar ' + por + ' marchas más.'); MS.add(id); }
     pMontaje();
   });
   document.getElementById('vb').onclick = () => { if (MBACK === 'tienda') { tab = 'tienda'; volver(null); } else volver({v: 'mibanda'}); };
