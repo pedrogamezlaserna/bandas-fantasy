@@ -385,6 +385,7 @@ function vistaApp() {
   app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; SUB = null; vistaApp(); });
   document.getElementById('hq').onclick = () => { SUB = {v: 'mibanda'}; vistaApp(); };
   window.scrollTo(0, 0);
+  trofeos();
   document.getElementById('salir').onclick = async () => { await sb.auth.signOut(); B = null; vistaAuth(false); };
   (SUB ? {mibanda: pMiBanda, montaje: pMontaje, pp: pPerfilPublico, componer: pComponer}[SUB.v] : {inicio: pInicio, contratos: pContratos, tienda: pTienda, ranking: pRanking, libre: pLibre, admin: pAdmin}[tab])();
 }
@@ -945,6 +946,48 @@ function mjShell(titulo, sub, cuerpo, onSkip) {
   pintaBanda(e);
   return e;
 }
+const TROFEOS = [
+['primer_contrato', 'Primer contrato', 'Consigues tu primera hermandad.'],
+['cartera_llena', 'Cartera llena', 'Llegas al máximo de contratos de tu nivel.'],
+['ladron', 'Ladrón de guante blanco', 'Le quitas un contrato a otra banda.'],
+['contra_viento', 'Contra viento y marea', 'Conservas un contrato cinco temporadas seguidas.'],
+['recuperado', 'Se acabó el robo', 'Recuperas un contrato que te habían quitado.'],
+['cinco_jornadas', 'Cinco jornadas', 'Tienes contratos en 5 jornadas distintas.'],
+['primera_salida', 'Primera salida', 'Completas tu primera procesión.'],
+['bajo_lluvia', 'Bajo la lluvia', 'Sales a la calle con lluvia y no te recoges.'],
+['a_cubierto', 'A cubierto', 'Te refugias en una iglesia.'],
+['semana_redonda', 'Semana redonda', 'Sales en 5 jornadas de la misma Semana Santa.'],
+['sin_contratiempo', 'Sin un contratiempo', 'Una Semana Santa (3 salidas o más) sin retrasos.'],
+['primer_millar', 'Primer millar', 'Acumulas 1.000 € de beneficio.'],
+['banda_rica', 'Banda rica', 'Acumulas 10.000 € de beneficio.'],
+['renombre', 'Banda de renombre', 'Llegas a 50 de prestigio.'],
+['estreno_banderin', 'Estreno de banderín', 'Compras tu primer banderín.'],
+['de_gala', 'De gala', 'Compras los tres estilos de banderín.'],
+['nota_perfecta', 'Nota perfecta', 'Sacas 100 en un minijuego.'],
+['maestro_todo', 'Maestro de todo', 'Más de 80 en los 7 minijuegos.'],
+['numero_uno', 'Número uno', 'Primer puesto del ranking general de Juegos (con 3 jugadores o más).'],
+['ensayo_completo', 'Día de ensayo completo', 'Gastas todas las acciones de un día de ensayo.'],
+['nivel_5', 'Nivel 5', 'Tu banda llega al nivel 5.'],
+['nivel_10', 'Nivel 10', 'Tu banda llega al nivel 10.'],
+['nivel_20', 'Nivel 20', 'Tu banda llega al nivel 20.'],
+['compositor', 'Compositor', 'Compones tu primera marcha.'],
+['repertorio_20', 'Repertorio de 20 marchas', 'Tienes 20 marchas o más en el repertorio.'],
+['dedicatoria', 'Dedicatoria', 'Compones una marcha dedicada a una hermandad.']];
+const medalla = on => `<span style="flex:none;width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:18px;${on ? 'background:#c9a24a;color:#fff' : 'background:#ddd5c3;color:#fff'}">★</span>`;
+function vitrinaHtml(ganados) {
+  const g = new Set(ganados || []);
+  return `<section><h2>Trofeos <small style="color:var(--gris);font-weight:400">${g.size} de ${TROFEOS.length}</small></h2>${TROFEOS.map(([k, n, d]) => `<div class="fila" style="${g.has(k) ? '' : 'opacity:.55'}">${medalla(g.has(k))}<div style="flex:1;min-width:0"><b style="display:block">${n}</b><small style="color:var(--gris)">${d}</small></div></div>`).join('')}</section>`;
+}
+async function trofeos() {
+  try {
+    const {data} = await sb.rpc('comprobar_trofeos');
+    if (!data || !data.length) return;
+    const t = data.map(k => TROFEOS.find(x => x[0] === k)).filter(Boolean);
+    if (!t.length) return;
+    const e = ov(`<h2>¡${t.length === 1 ? 'Trofeo nuevo' : 'Trofeos nuevos'}!</h2>${t.map(x => `<div class="fila" style="width:100%;max-width:320px;box-sizing:border-box;border:0;padding:8px 0">${medalla(true)}<div style="flex:1;text-align:left"><b style="display:block">${x[1]}</b><small>${x[2]}</small></div></div>`).join('')}<button class="b2" id="oktr">Estupendo</button>`);
+    document.getElementById('oktr').onclick = () => e.remove();
+  } catch (e) {}
+}
 let JUEGO = '';
 const hecho = (acaba) => { let ya = false; const jg = JUEGO; return async sc => {
   if (ya) return; ya = true; acaba && acaba();
@@ -1451,7 +1494,7 @@ async function pPerfilPublico() {
     sb.from('bandas').select('id,nombre,usuario,escudo,nivel,prestigio,uniforme,banderin,nombre_elegido,procedencia,bateria,cornetas,percusion,madera,metal').eq('id', id).maybeSingle(),
     sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', id),
     sb.from('repertorio').select('marchas(titulo,compositor,estilo,propia_de,dedicatoria)').eq('banda_id', id)]);
-  const hist = (await sb.rpc('historial_banda', {p_id: id})).data || [];
+  const hist = (await sb.rpc('historial_banda', {p_id: id})).data || [], tro = (await sb.rpc('trofeos_banda', {p_id: id})).data || [];
   const b = rb.data; if (!b) { v.innerHTML = '<section><p class="nota">No se encuentra esa banda.</p></section>'; return; }
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada));
   const ms = (rr.data || []).map(x => x.marchas).sort((x, y) => (!!y.propia_de - !!x.propia_de) || x.titulo.localeCompare(y.titulo, 'es'));
@@ -1463,6 +1506,7 @@ async function pPerfilPublico() {
   <section><h2>Estilo</h2><div class="barra"><i style="width:${pf}%"></i></div><div class="fila2"><span>Fúnebre ${pf} %</span><span>Alegre ${100 - pf} %</span></div></section>
   ${b.banderin ? `<section style="text-align:center"><h2 style="text-align:left">Banderín</h2>${banderin(bdDe(b), 200)}</section>` : ''}
   <section style="text-align:center"><h2 style="text-align:left">Uniforme</h2>${uniHtml('pp', 170)}</section>
+  ${vitrinaHtml(tro)}
   <section><h2>Historial de temporadas</h2>${hist.length ? hist.map(t => `<div class="fila"><div style="flex:1"><b style="display:block">Temporada ${t.temporada}</b><small style="color:var(--gris)">${t.salidas} ${t.salidas === 1 ? 'salida' : 'salidas'} de ${t.actuaciones} · ${t.ganados} contratos ganados · ${t.robados} perdidos · +${t.xp} xp</small></div><b>${t.beneficio >= 0 ? '+' : ''}${t.beneficio} €</b></div>`).join('') : '<p class="nota" style="margin:0">Todavía no hay temporadas completadas.</p>'}</section>
   <section><h2>Contratos</h2>${cs.length ? cs.map(c => `<div class="fila"><div style="flex:1"><b style="display:block">${h(c.hermandades.nombre)}</b><small style="color:var(--gris)">${c.hermandades.jornada}</small></div><span class="pill p2">${c.anios} ${c.anios === 1 ? 'año' : 'años'}</span></div>`).join('') : '<p class="nota" style="margin:0">Todavía no tiene contratos.</p>'}</section>
   <section><h2>Repertorio</h2><div id="rp">${ms.slice(0, 5).map(fila).join('')}</div>${ms.length > 5 ? `<button class="of2" id="vm">Ver las ${ms.length - 5} marchas restantes</button>` : ''}</section>
@@ -1509,6 +1553,7 @@ function pMiBanda() {
   });
   document.getElementById('cm').onclick = () => { MBACK = 'mibanda'; volver({v: 'componer'}); };
   document.getElementById('mm').onclick = () => { MS = new Set(); MBACK = 'mibanda'; volver({v: 'montaje'}); };
+  { const hv = document.createElement('div'); v.appendChild(hv); sb.rpc('trofeos_banda', {p_id: B.id}).then(({data}) => { if (document.body.contains(hv)) hv.innerHTML = vitrinaHtml(data || []); }); }
 }
 
 let MBACK = 'mibanda', MS = new Set(), MF = 'todas', MT = 'montar', CAT = null;
