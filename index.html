@@ -1121,10 +1121,12 @@ function compas() {
 function partitura() {
   const W = 360, H = 320, SUELO = 290, X = 90, PUERTAS = 18, ESP = 230, VEL = 150;
   let vivo = true, raf = 0, last = 0, y = 150, vy = 0, esperando = true, scroll = 0, pasadas = 0, fase = 'vuela', finT = 0;
-  const pu = []; for (let i = 0; i < PUERTAS; i++) { const hueco = 124 - 22 * i / PUERTAS; pu.push({x: 420 + i * ESP, c: 80 + hueco / 2 + Math.random() * (SUELO - 160 - hueco + 20), h: hueco, ok: false}); }
+  let pu = [], reint = 1, mejor = 0;
+  const nuevasPuertas = () => { pu = []; for (let i = 0; i < PUERTAS; i++) { const hueco = 124 - 22 * i / PUERTAS; pu.push({x: 420 + i * ESP, c: 80 + hueco / 2 + Math.random() * (SUELO - 160 - hueco + 20), h: hueco, ok: false}); } };
+  nuevasPuertas();
   const meta = 420 + PUERTAS * ESP + 120;
   const enviar = hecho(() => { vivo = false; cancelAnimationFrame(raf); window.removeEventListener('keydown', kd); });
-  const e = mjShell('La partitura al viento', 'Toca para que la partitura suba y pásala por los huecos entre las ramas y los balcones. Hay que llevarla hasta el atril.',
+  const e = mjShell('La partitura al viento', 'Toca para que la partitura suba y pásala por los huecos entre las ramas y los balcones. Hay que llevarla hasta el atril. Si fallas, puedes reintentarlo una vez y cuenta tu mejor marca.',
     `<div class="stg" style="height:320px;padding:0"><canvas id="cv" width="${W * 2}" height="${H * 2}" style="width:100%;height:100%;display:block;touch-action:none"></canvas></div>
     <div class="mjb" style="margin-top:8px"><button class="of" id="bup" style="height:64px;margin:0;touch-action:manipulation">Subir</button></div>`,
     () => enviar(30));
@@ -1132,8 +1134,16 @@ function partitura() {
   const sube = () => { if (fase !== 'vuela') return; esperando = false; vy = -300; snd('tic'); };
   const kd = ev => { if (ev.code === 'Space' || ev.code === 'ArrowUp') { ev.preventDefault(); sube(); } };
   window.addEventListener('keydown', kd);
-  document.getElementById('bup').onpointerdown = sube; document.getElementById('cv').onpointerdown = sube;
+  const fila = e.querySelector('.mjb');
+  const botonSubir = () => { fila.innerHTML = '<button class="of" id="bup" style="height:64px;margin:0;touch-action:manipulation">Subir</button>'; document.getElementById('bup').onpointerdown = sube; };
+  botonSubir(); document.getElementById('cv').onpointerdown = sube;
   const puntuacion = () => Math.round(Math.min(100, pasadas / PUERTAS * 100));
+  const elige = () => {
+    fase = 'elige';
+    fila.innerHTML = `<button class="of" id="bre" style="height:64px;margin:0">Reintentar (solo 1 vez)</button><button class="of2" id="bfin" style="height:64px;margin:0">Terminar con ${pasadas} huecos</button>`;
+    document.getElementById('bre').onclick = () => { reint--; nuevasPuertas(); y = 150; vy = 0; scroll = 0; pasadas = 0; esperando = true; fase = 'vuela'; botonSubir(); };
+    document.getElementById('bfin').onclick = () => { vivo = false; enviar(mejor); };
+  };
   const hoja = () => { c.save(); c.translate(X, y); c.rotate(Math.max(-.5, Math.min(.7, vy / 500))); c.fillStyle = '#f6efd9'; c.fillRect(-12, -15, 24, 30); c.strokeStyle = '#7a6a4a'; c.lineWidth = 1; c.strokeRect(-12, -15, 24, 30);
     c.strokeStyle = '#555'; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(-9, -9 + i * 5); c.lineTo(9, -9 + i * 5); c.stroke(); } c.fillStyle = '#222'; c.beginPath(); c.arc(-2, 1, 2.2, 0, 7); c.arc(5, -4, 2.2, 0, 7); c.fill(); c.restore(); };
   const pinta = () => {
@@ -1155,11 +1165,11 @@ function partitura() {
       if (!esperando) {
         vy += 900 * dt; y += vy * dt; scroll += VEL * dt;
         pu.forEach(p => { const x = p.x - scroll; if (!p.ok && x + 40 < X - 12) { p.ok = true; pasadas++; }
-          if (X + 11 > x && X - 11 < x + 40 && (y - 14 < p.c - p.h / 2 || y + 14 > p.c + p.h / 2)) { fase = 'cae'; finT = 1.4; snd('mal'); } });
-        if (y + 15 > SUELO || y - 15 < 0) { y = Math.max(15, Math.min(SUELO - 15, y)); if (fase === 'vuela') { fase = 'cae'; finT = 1.4; snd('mal'); } }
-        if (fase === 'vuela' && scroll >= meta - X - 20) { fase = 'llega'; finT = 1.4; snd('ok'); }
+          if (X + 11 > x && X - 11 < x + 40 && (y - 14 < p.c - p.h / 2 || y + 14 > p.c + p.h / 2)) { fase = 'cae'; finT = 1.4; mejor = Math.max(mejor, puntuacion()); snd('mal'); } });
+        if (y + 15 > SUELO || y - 15 < 0) { y = Math.max(15, Math.min(SUELO - 15, y)); if (fase === 'vuela') { fase = 'cae'; finT = 1.4; mejor = Math.max(mejor, puntuacion()); snd('mal'); } }
+        if (fase === 'vuela' && scroll >= meta - X - 20) { fase = 'llega'; finT = 1.4; mejor = Math.max(mejor, puntuacion()); snd('ok'); }
       } else y = 150 + Math.sin(ts / 250) * 6;
-    } else { finT -= dt; if (finT <= 0) { vivo = false; return enviar(puntuacion()); } }
+    } else if (fase !== 'elige') { finT -= dt; if (finT <= 0) { if (fase === 'cae' && reint > 0) elige(); else { vivo = false; return enviar(mejor); } } }
     pinta(); raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
