@@ -945,20 +945,26 @@ function mjShell(titulo, sub, cuerpo, onSkip) {
   pintaBanda(e);
   return e;
 }
-const hecho = (acaba) => { let ya = false; return async sc => {
+let JUEGO = '';
+const hecho = (acaba) => { let ya = false; const jg = JUEGO; return async sc => {
   if (ya) return; ya = true; acaba && acaba();
-  if (LIBRE) { LIBRE = false; const o = document.getElementById('ov'); o && o.remove(); const e = ov(`<h2>Juegos</h2><p>Puntuación: ${sc} de 100.</p><p class="nota">Aquí no se gana experiencia ni se gastan acciones.</p><button class="b2" id="okl">Continuar</button>`); document.getElementById('okl').onclick = () => e.remove(); return; }
+  if (jg) { const rp = sb.rpc('registrar_record', {p_juego: jg, p_puntos: Math.max(0, Math.min(100, Math.round(sc)))}); if (LIBRE) { try { await rp; } catch (e) {} } }
+  if (LIBRE) { LIBRE = false; const o = document.getElementById('ov'); o && o.remove(); const e = ov(`<h2>Juegos</h2><p>Puntuación: ${sc} de 100.</p><p class="nota">Aquí no se gana experiencia ni se gastan acciones.</p><button class="b2" id="okl">Continuar</button>`); document.getElementById('okl').onclick = () => e.remove(); pLibre(); return; }
   const {data, error} = await sb.rpc('ensayar_pulso', {p_puntuacion: sc});
   if (error) { const o = document.getElementById('ov'); o && o.remove(); return aviso(error.message); }
   fin('Ensayo terminado', `Puntuación: ${sc} de 100. Ganas ${data} xp.`);
 }; };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-let LIBRE = false;
+let LIBRE = false, RKSEL = 'general';
 function pLibre() {
   const v = document.getElementById('vista');
+  const RK = ['general', 'pulso', 'afinacion', 'paso', 'frase', 'carrera', 'compas', 'partitura'], RN_ = ['General', 'El pulso', 'Afinación', 'Marcar el paso', 'Repetir la frase', 'Al templo', 'Al compás', 'Partitura'];
   const J = [['El pulso', 'Toca el bombo justo cuando el aro llegue al círculo.', pulso], ['Afinación', 'Para la aguja en la zona verde, ronda a ronda.', afinacion], ['Marcar el paso', 'Toca el pie que se ilumina, izquierdo o derecho.', paso], ['Repetir la frase', 'Escucha la frase y repítela en el mismo orden.', frase], ['A toda prisa al templo', 'Corre bajo la lluvia, salta y agáchate hasta llegar a la iglesia.', carrera], ['Al compás de la marcha', 'Toca el instrumento de cada carril cuando la nota llegue a la línea.', compas], ['La partitura al viento', 'Pasa la partitura por los huecos entre ramas y balcones hasta el atril.', partitura]];
   v.innerHTML = `<section><h2>Juegos</h2><p class="nota" style="margin:0">Juega a los minijuegos del ensayo cuando quieras y las veces que quieras. Aquí no se gana experiencia ni se gastan acciones: es solo para practicar o pasar el rato. Está disponible tanto en ensayo como en Semana Santa.</p></section>
-  <section>${J.map(([t, d], i) => `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${t}</b><small style="color:var(--gris)">${d}</small></div><button class="of" data-j="${i}" style="width:auto;padding:0 16px;margin:0;height:40px">Jugar</button></div>`).join('')}</section>`;
+  <section>${J.map(([t, d], i) => `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${t}</b><small style="color:var(--gris)">${d}</small></div><button class="of" data-j="${i}" style="width:auto;padding:0 16px;margin:0;height:40px">Jugar</button></div>`).join('')}</section>
+  <section><h2>Ranking</h2><p class="nota" style="margin:0 0 8px">Mejor puntuación de cada director. General = suma de las mejores de cada juego.</p><div id="rkc" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">${RK.map((k, i) => `<button class="${k === RKSEL ? 'of' : 'b2'}" data-rk="${k}" style="width:auto;padding:0 12px;margin:0;height:34px">${RN_[i]}</button>`).join('')}</div><div id="rkl"><p class="nota">Cargando…</p></div></section>`;
+  v.querySelectorAll('[data-rk]').forEach(b => b.onclick = () => { RKSEL = b.dataset.rk; pLibre(); });
+  sb.rpc('ranking_juegos', {p_juego: RKSEL}).then(({data, error}) => { const d = document.getElementById('rkl'); if (!d) return; if (error || !data) { d.innerHTML = '<p class="nota">No se pudo cargar el ranking.</p>'; return; } const t = data.top || []; d.innerHTML = t.length ? t.map(r => `<div class="fila"${r.yo ? ' style="background:#f3ead7"' : ''}><b style="width:28px">${r.pos}</b><span style="flex:1">${h(r.usuario)}${r.yo ? ' (tú)' : ''}</span><b>${r.puntos}</b></div>`).join('') + (data.yo && data.yo.pos > 10 ? `<div class="fila" style="background:#f3ead7"><b style="width:28px">${data.yo.pos}</b><span style="flex:1">Tú</span><b>${data.yo.puntos}</b></div>` : '') : '<p class="nota">Nadie ha jugado todavía. ¡Sé el primero!</p>'; });
   v.querySelectorAll('[data-j]').forEach(b => b.onclick = () => { LIBRE = true; ctxA(); J[+b.dataset.j][2](); });
 }
 
@@ -975,6 +981,7 @@ async function ensayar() {
 
 // ---- 5. A toda prisa al templo (corredor)
 function carrera() {
+  JUEGO = 'carrera';
   const W = 360, H = 340, G = 268, L = 16500, RX = 64;
   const U = Object.assign({}, UDEF, B.uniforme || {});
   let vivo = true, raf = 0, last = 0, t = 0, dist = 0, y = 0, vy = 0, agach = false, notas = 0, fase = 'corre', finT = 0, msgT = 0;
@@ -1071,6 +1078,7 @@ function carrera() {
 
 // ---- 6. Al compás de la marcha (carriles)
 function compas() {
+  JUEGO = 'compas';
   const W = 360, H = 300, LY = 250, CAI = 1.5, LN = 4, LW = W / LN;
   const NOMB = ['Corneta', 'Caja', 'Bombo', 'Clarinete'], SON = ['corneta', 'caja', 'bombo', 'clarinete'], COL = ['#e8c34a', '#c0392b', '#8e5bd1', '#2e9e6a'];
   const notas = []; let k = 0, last = -1, rep = 0;
@@ -1119,6 +1127,7 @@ function compas() {
 
 // ---- 7. La partitura al viento (vuelo)
 function partitura() {
+  JUEGO = 'partitura';
   const W = 360, H = 320, SUELO = 290, X = 90, PUERTAS = 18, ESP = 230, VEL = 150;
   let vivo = true, raf = 0, last = 0, y = 150, vy = 0, esperando = true, scroll = 0, pasadas = 0, fase = 'vuela', finT = 0;
   let pu = [], reint = 1, mejor = 0;
@@ -1177,6 +1186,7 @@ function partitura() {
 
 // ---- 1. El pulso (bombo)
 function pulso() {
+  JUEGO = 'pulso';
   const N = 12, GAP = 800, D = 1200, beats = [], taps = []; let timers = [], fin_ = null;
   const e = mjShell('El pulso', 'Toca el bombo justo cuando el aro llegue al círculo. Los dos primeros son de calentamiento.',
     `<div class="stg" style="height:340px;background:radial-gradient(ellipse at 50% 30%,#7a4a9a 0%,#2a1238 72%)"><div class="tg"></div><div id="rs"></div><div id="fb" class="fbk"></div>${mfig('bombo_anim', 170, 94, -24, 0, 'dm')}</div><button class="b2" id="tap" style="height:64px;font-size:20px">¡Bombo!</button>`,
@@ -1200,6 +1210,7 @@ function pulso() {
 
 // ---- 2. Afinación
 function afinacion() {
+  JUEGO = 'afinacion';
   const ZW = [.20, .16, .12, .09, .07], RN = ZW.length; let r = 0, pts = [], raf = 0, t00 = performance.now(), centro = .5, vivo = true;
   const room = `<svg class="bgs" viewBox="0 0 358 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><defs><linearGradient id="aw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a5568"/><stop offset="1" stop-color="#4a3040"/></linearGradient></defs><rect width="358" height="300" fill="url(#aw)"/><rect y="200" width="358" height="100" fill="#6b4529"/>${[0, 1, 2, 3, 4, 5, 6].map(i => `<rect x="${i * 60 - 10}" y="200" width="2" height="100" fill="#4f3220"/>`).join('')}<rect y="200" width="358" height="4" fill="#3a2516"/>
   <rect x="24" y="34" width="84" height="92" rx="4" fill="#2b1a2e"/><rect x="30" y="40" width="72" height="80" fill="#f4d98c"/><rect x="64" y="40" width="4" height="80" fill="#a97d2b"/><rect x="30" y="76" width="72" height="4" fill="#a97d2b"/>
@@ -1233,6 +1244,7 @@ function afinacion() {
 
 // ---- 3. Marcar el paso
 function paso() {
+  JUEGO = 'paso';
   const N = 16; let timers = [], cues = [], taps = [], vivo = true;
   const enviar = hecho(() => timers.forEach(clearTimeout));
   const fil = (n, w, b, ini, paso_) => Array.from({length: n}, (_, i) => mfig(i % 2 ? 'caja' : 'clarinete', w, ini + i * paso_, b, (i % 2) * .35, 'swy')).join('');
@@ -1265,6 +1277,7 @@ function paso() {
 
 // ---- 4. Repetir la frase
 function frase() {
+  JUEGO = 'frase';
   const K = ['caja', 'bombo_anim', 'corneta', 'clarinete'], NOM = ['Caja', 'Bombo', 'Corneta', 'Clarinete'], NT = [0, 0, 440, 330], RN = 5; let seq = [], ronda = 0, entrada = 0, turno = false, acabado = false, puntos = 0;
   const enviar = hecho(() => { acabado = true; });
   const e = mjShell('Repetir la frase', 'Escucha la frase y repítela tocando los instrumentos en el mismo orden.',
@@ -1438,6 +1451,7 @@ async function pPerfilPublico() {
     sb.from('bandas').select('id,nombre,usuario,escudo,nivel,prestigio,uniforme,banderin,nombre_elegido,procedencia,bateria,cornetas,percusion,madera,metal').eq('id', id).maybeSingle(),
     sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', id),
     sb.from('repertorio').select('marchas(titulo,compositor,estilo,propia_de,dedicatoria)').eq('banda_id', id)]);
+  const hist = (await sb.rpc('historial_banda', {p_id: id})).data || [];
   const b = rb.data; if (!b) { v.innerHTML = '<section><p class="nota">No se encuentra esa banda.</p></section>'; return; }
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada));
   const ms = (rr.data || []).map(x => x.marchas).sort((x, y) => (!!y.propia_de - !!x.propia_de) || x.titulo.localeCompare(y.titulo, 'es'));
@@ -1449,6 +1463,7 @@ async function pPerfilPublico() {
   <section><h2>Estilo</h2><div class="barra"><i style="width:${pf}%"></i></div><div class="fila2"><span>Fúnebre ${pf} %</span><span>Alegre ${100 - pf} %</span></div></section>
   ${b.banderin ? `<section style="text-align:center"><h2 style="text-align:left">Banderín</h2>${banderin(bdDe(b), 200)}</section>` : ''}
   <section style="text-align:center"><h2 style="text-align:left">Uniforme</h2>${uniHtml('pp', 170)}</section>
+  <section><h2>Historial de temporadas</h2>${hist.length ? hist.map(t => `<div class="fila"><div style="flex:1"><b style="display:block">Temporada ${t.temporada}</b><small style="color:var(--gris)">${t.salidas} ${t.salidas === 1 ? 'salida' : 'salidas'} de ${t.actuaciones} · ${t.ganados} contratos ganados · ${t.robados} perdidos · +${t.xp} xp</small></div><b>${t.beneficio >= 0 ? '+' : ''}${t.beneficio} €</b></div>`).join('') : '<p class="nota" style="margin:0">Todavía no hay temporadas completadas.</p>'}</section>
   <section><h2>Contratos</h2>${cs.length ? cs.map(c => `<div class="fila"><div style="flex:1"><b style="display:block">${h(c.hermandades.nombre)}</b><small style="color:var(--gris)">${c.hermandades.jornada}</small></div><span class="pill p2">${c.anios} ${c.anios === 1 ? 'año' : 'años'}</span></div>`).join('') : '<p class="nota" style="margin:0">Todavía no tiene contratos.</p>'}</section>
   <section><h2>Repertorio</h2><div id="rp">${ms.slice(0, 5).map(fila).join('')}</div>${ms.length > 5 ? `<button class="of2" id="vm">Ver las ${ms.length - 5} marchas restantes</button>` : ''}</section>
   <button class="of2" id="vr" style="margin-top:14px">Volver al ranking</button>`;
