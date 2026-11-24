@@ -419,6 +419,7 @@ async function pInicio() {
   const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana';
   const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
   document.getElementById('vista').innerHTML = `
+  <section id="ratq" hidden></section>${new Date().toLocaleDateString('sv-SE', {timeZone: 'Europe/Madrid'}) === '2026-11-25' ? `<section style="border-left:5px solid #e8b84a"><h2>Novedad: el rescate de contratos</h2><p style="margin:0 0 6px">Ya no se puede quitar un contrato con una oferta normal. Las hermandades libres se ofertan como siempre. Las que ya tienen banda se pueden <b>rescatar</b> (pestaña Contratos, día de ensayo):</p><p class="nota" style="margin:0">• Cuesta 1 acción y ${P.rescate_xp} de experiencia, se gane o no.<br>• Si ganas, pagas el ${P.rescate_pct} % de tu dinero a la banda dueña y el contrato queda a ${P.rescate_anios} años, blindado.<br>• Probabilidad: ${P.rescate_base} % para el dueño y ${100 - P.rescate_base} % para ti. El dueño puede pagar para defenderse y subirla.<br>• Un rescate por banda y temporada. También puedes rescindir un contrato pagando una indemnización.</p></section>` : ''}
   ${sem ? '<section id="rsum" hidden></section>' : ''}
   <section>${sem ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. Toca cada jornada cuando quieras. A las 00:00, las que no hayas tocado se resolverán solas y cobrarás solo la mitad de dinero y de experiencia.</p><div id="sj"></div>`
   : `<h2>Día de ensayo</h2><div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
@@ -435,6 +436,7 @@ async function pInicio() {
   <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>`;
   if (!sem) document.getElementById('ens').onclick = ensayar;
   if (sem) { semanaLista(); resumenOfertas(); }
+  if (!sem) sb.rpc('rescates_info').then(({data: ri}) => { const el = document.getElementById('ratq'); if (!el || !ri || !ri.contra || !ri.contra.length) return; const L = ri.contra; el.style.cssText = 'border:2px solid #7a1020;background:#fff3f0'; el.hidden = false; el.innerHTML = `<h2 style="color:#7a1020">¡Quieren quitarte ${L.length === 1 ? 'un contrato' : 'contratos'}!</h2>` + L.map((a, i) => `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${h(a.hermandad)}</b><small style="color:var(--gris)">${h((a.atacantes || []).join(', '))} · oferta ${eur(a.oferta_max)} · conservarlo: ${probDueno(a)} %</small></div><button class="of" data-dfi="${i}" style="width:auto;padding:0 14px;margin:0;height:40px">Defender</button></div>`).join('') + '<p class="nota" style="margin:6px 0 0">Se resuelve a las 00:00.</p>'; el.querySelectorAll('[data-dfi]').forEach(b => b.onclick = () => modalDefensa(L[+b.dataset.dfi])); });
   const [rc, rn] = await Promise.all([sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', B.id), sb.from('noticias').select('id,temporada,texto,creada,categoria').order('id', {ascending: false}).limit(3)]);
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada)), ns = rn.data || [];
   const ect = document.getElementById('ct'), ent = document.getElementById('nt');
@@ -633,6 +635,61 @@ const pagoDe = (x, nivel) => Math.round(({'Fácil': P.pago_facil, 'Media': P.pag
 const maxC = n => n < 3 ? 3 : n < 6 ? 5 : n < 9 ? 6 : n < 15 ? 8 : 10;
 const sigNivelC = n => [3, 6, 9, 15].find(x => x > n);
 
+let RI = {contra: [], mio: null, usado: false};
+const blind = ct => ct && ct.blindado_hasta >= E.temporada;
+function razonR(x) {
+  const ct = C[x.id];
+  if (E.fase !== 'ensayo') return 'El rescate se hace en el día de ensayo.';
+  if (blind(ct)) return 'Contrato blindado hasta la temporada ' + (ct.blindado_hasta + 1) + '.';
+  if (RI.usado) return 'Ya has intentado un rescate esta temporada.';
+  if (B.acciones < 1) return 'No te quedan acciones hoy.';
+  if (MYJ.has(x.jornada)) return 'Ya tienes un contrato ese día.';
+  if (OFJ.has(x.jornada)) return 'Tienes una oferta ese día.';
+  return '';
+}
+const probDueno = a => { const base = a.n === 1 ? P.rescate_base : P.rescate_base_multi; return a.oferta_max > 0 ? Math.round(base + (100 - base) * Math.min(1, a.defensa / (2 * a.oferta_max))) : base; };
+function modalRescate(x) {
+  const of = Math.round(B.dinero * P.rescate_pct / 100), ct = C[x.id];
+  const e = ov(`<h2>Rescatar ${h(x.nombre)}</h2>
+  <div class="avo">Este contrato lo tiene <b>${h(ct.bandas.nombre)}</b>. Se resuelve a las 00:00 y tu rival puede defenderse.</div>
+  <div style="width:100%;max-width:420px;background:rgba(255,255,255,.14);border-radius:14px;padding:14px;text-align:left;font-size:15px;line-height:1.5">
+  <b>Lo que te cuesta, ganes o pierdas:</b><br>• 1 acción de hoy<br>• ${P.rescate_xp} de experiencia (sin bajar de nivel)<br><br>
+  <b>Lo que pagas solo si ganas:</b><br>• ${eur(of)} (el ${P.rescate_pct} % de tu dinero) para ${h(ct.bandas.nombre)}. Queda reservado hasta el cierre y, si pierdes, se te devuelve.<br><br>
+  <b>Probabilidad:</b> ${100 - P.rescate_base} % si solo atacas tú, menos si hay más bandas. Si el dueño paga para defenderse, baja.<br>
+  <b>Si ganas:</b> contrato de ${P.rescate_anios} años, blindado ese tiempo.<br><br><small>Solo puedes intentar un rescate por temporada.</small></div>
+  <button class="b2" id="rsgo">Rescatar</button><button class="b3" id="no" style="text-align:center">Cancelar</button>`);
+  document.getElementById('no').onclick = () => e.remove();
+  document.getElementById('rsgo').onclick = async () => {
+    document.getElementById('rsgo').disabled = true;
+    const {error} = await sb.rpc('rescatar', {p_h: x.id});
+    e.remove(); if (error) return aviso(error.message);
+    await init();
+  };
+}
+function modalDefensa(a) {
+  const p0 = probDueno(a), falta = Math.max(0, 2 * a.oferta_max - a.defensa);
+  const e = ov(`<h2>Defiende ${h(a.hermandad)}</h2>
+  <div class="avo"><b>${h((a.atacantes || []).join(', '))}</b> ${a.n === 1 ? 'quiere' : 'quieren'} quitarte este contrato (${h(a.jornada)}).</div>
+  <div style="width:100%;max-width:420px;background:rgba(255,255,255,.14);border-radius:14px;padding:14px;text-align:left;font-size:15px;line-height:1.5">
+  Mayor oferta rival: <b>${eur(a.oferta_max)}</b><br>Ya has puesto: <b>${eur(a.defensa)}</b><br>Probabilidad de conservarlo: <b>${p0} %</b><br><br>
+  <small>Cuanto más pagas, más sube tu probabilidad. Si pagas el doble de la oferta rival (${eur(2 * a.oferta_max)}) lo conservas seguro y lo blindas ${P.rescate_anios} años. El dinero solo se gasta si conservas el contrato: si lo pierdes, se te devuelve.</small></div>
+  ${falta > 0 ? `<input id="dfc" type="number" min="1" max="${falta}" placeholder="Cantidad en €" style="width:100%;max-width:420px;height:48px;border-radius:12px;border:0;padding:0 14px;font-size:16px;box-sizing:border-box">
+  <button class="b2" id="dfgo">Pagar esa cantidad</button><button class="b2" id="dfall">Pagar el doble (${eur(falta)})</button>` : '<p>Ya has pagado el doble: lo conservas seguro.</p>'}
+  <button class="b3" id="no" style="text-align:center">Cerrar</button>`);
+  document.getElementById('no').onclick = () => e.remove();
+  const pagar = async c => { const {error} = await sb.rpc('defender_contrato', {p_h: a.hermandad_id, p_cantidad: c}); e.remove(); if (error) return aviso(error.message); await init(); };
+  const g = document.getElementById('dfgo'); if (g) g.onclick = () => pagar(Math.floor(+document.getElementById('dfc').value || 0));
+  const al = document.getElementById('dfall'); if (al) al.onclick = () => pagar(falta);
+}
+function modalRescindir(x) {
+  const ct = C[x.id], ind = Math.round(pagoDe(x, B.nivel) * ct.pago_pct / 100 * ct.anios * P.rescision_pct / 100);
+  const e = ov(`<h2>Rescindir ${h(x.nombre)}</h2>
+  <div class="avo">Rompes el contrato y la hermandad queda libre. Indemnización por los ${ct.anios} ${ct.anios === 1 ? 'año' : 'años'} que quedan: <b>${eur(ind)}</b>.</div>
+  <button class="b2" id="rcgo" ${ind > B.dinero ? 'disabled' : ''}>Rescindir y pagar ${eur(ind)}</button><button class="b3" id="no" style="text-align:center">Cancelar</button>`);
+  document.getElementById('no').onclick = () => e.remove();
+  document.getElementById('rcgo').onclick = async () => { const {error} = await sb.rpc('rescindir_contrato', {p_h: x.id}); e.remove(); if (error) return aviso(error.message); await init(); };
+}
+
 function tarjeta(x, e, p) {
   const c = compat(x, p), ct = C[x.id], of = O[x.id];
   const bn = ct ? ct.bandas.nombre : (x.bandas_ficticias ? x.bandas_ficticias.nombre : 'Sin banda');
@@ -641,7 +698,8 @@ function tarjeta(x, e, p) {
   else {
     const mot = [B.nivel < x.nivel_min ? 'nivel' : '', c < x.compat_min ? 'compatibilidad' : ''].filter(Boolean).join(' y ');
     let acc;
-    if (e === 'm') acc = `<div class="est l">Contrato tuyo. Quedan ${ct.anios} ${ct.anios === 1 ? 'año' : 'años'}.</div>`;
+    if (e === 'm') acc = `<div class="est l">Contrato tuyo. Quedan ${ct.anios} ${ct.anios === 1 ? 'año' : 'años'}.${blind(ct) ? ' Blindado: nadie puede rescatarlo hasta la temporada ' + (ct.blindado_hasta + 1) + '.' : ''}</div>${E.fase === 'ensayo' ? `<button class="of2" data-rc="${x.id}">Rescindir contrato</button>` : ''}`;
+    else if (e === 'r') acc = razonR(x) ? `<div class="est">${razonR(x)}</div>` : `<button class="of" data-rs="${x.id}">Rescatar contrato</button>`;
     else if (e === 'o') acc = `<div class="est l">Oferta presentada: se resuelve a las 00:00.</div><button class="of2" data-r="${of.id}">Retirar oferta</button>`;
     else if (e === 'l') acc = E.fase !== 'ensayo' ? '<div class="est">Las ofertas se presentan en el día de ensayo.</div>' : MYJ.has(x.jornada) ? '<div class="est">Ya tienes un contrato ese día.</div>' : OFJ.has(x.jornada) ? '<div class="est">Ya tienes otra oferta ese día.</div>' : `<button class="of" data-h="${x.id}">Presentar oferta</button>`;
     else acc = `<div class="est">Te falta ${mot}. Nivel mínimo ${x.nivel_min}.</div>`;
@@ -692,30 +750,34 @@ async function pContratos() {
     if (error) return aviso(error.message);
     H = data;
   }
-  const [rc, ro] = await Promise.all([sb.from('contratos').select('hermandad_id,banda_id,anios,bandas(nombre)'), sb.from('ofertas').select('id,hermandad_id,prioridad')]);
+  const [rc, ro, rr] = await Promise.all([sb.from('contratos').select('hermandad_id,banda_id,anios,blindado_hasta,pago_pct,bandas(nombre)'), sb.from('ofertas').select('id,hermandad_id,prioridad'), sb.rpc('rescates_info')]);
+  RI = (rr.data && !rr.error) ? rr.data : {contra: [], mio: null, usado: false};
   C = {}; (rc.data || []).forEach(c => { if (!C[c.hermandad_id] || c.banda_id === B.id) C[c.hermandad_id] = c; });
   O = {}; (ro.data || []).forEach(o => O[o.hermandad_id] = o);
   const mios = H.filter(x => C[x.id] && C[x.id].banda_id === B.id);
   MYJ = new Set(mios.map(x => x.jornada)); OFJ = new Set(H.filter(x => O[x.id]).map(x => x.jornada));
   const ofs = Object.values(O).sort((a, b) => a.prioridad - b.prioridad), libres = Math.max(0, maxC(B.nivel) - mios.length);
   const p = perfil();
-  const est = x => x.silencio ? 's' : C[x.id] && C[x.id].banda_id === B.id ? 'm' : B.nivel < x.nivel_min || compat(x, p) < x.compat_min ? 'b' : O[x.id] ? 'o' : 'l';
+  const est = x => x.silencio ? 's' : C[x.id] && C[x.id].banda_id === B.id ? 'm' : B.nivel < x.nivel_min || compat(x, p) < x.compat_min ? 'b' : O[x.id] ? 'o' : C[x.id] ? 'r' : 'l';
   const fuera = x => x.ciudad !== 'Sevilla';
-  const lista = H.filter(x => !fuera(x) && (fil === 'todas' || est(x) === 'l' || est(x) === 'o'));
+  const lista = H.filter(x => !fuera(x) && (fil === 'todas' || est(x) === 'l' || est(x) === 'o' || est(x) === 'r'));
   const viaje = P.desplazamiento || 400;
   const listaF = H.filter(x => fuera(x) && (ciu === 'todas' || x.ciudad === ciu));
   const ciudades = [...new Set(H.filter(fuera).map(x => x.ciudad))].sort((a, b) => a.localeCompare(b, 'es'));
   const nom = x => fuera(x) ? x.nombre.replace(/ \([^()]*\)$/, '') : x.nombre;
   const filaF = x => { const e = est(x), pg = pagoDe(x, B.nivel);
-    const acc = e === 'm' ? `<span class="pill p2">Tuyo</span>` : e === 'o' ? `<button class="of2" data-r="${O[x.id].id}" style="width:auto;padding:0 12px;margin:0;height:38px">Retirar</button>`
+    const acc = e === 'm' ? `<span class="pill p2">Tuyo${blind(C[x.id]) ? ' · blindado' : ''}</span>${E.fase === 'ensayo' ? `<button class="of2" data-rc="${x.id}" style="width:auto;padding:0 10px;margin:0 0 0 6px;height:38px">Rescindir</button>` : ''}` : e === 'o' ? `<button class="of2" data-r="${O[x.id].id}" style="width:auto;padding:0 12px;margin:0;height:38px">Retirar</button>`
       : e === 'b' ? `<span class="fmin">${B.nivel < x.nivel_min ? 'Nivel ' + x.nivel_min : 'Compat. ' + x.compat_min}</span>`
       : e === 's' ? `<span class="fmin">En silencio</span>`
+      : e === 'r' ? (razonR(x) ? `<span class="fmin">${razonR(x)}</span>` : `<button class="of" data-rs="${x.id}" style="width:auto;padding:0 12px;margin:0;height:38px">Rescatar</button>`)
       : E.fase !== 'ensayo' ? `<span class="fmin">Solo en ensayo</span>` : MYJ.has(x.jornada) ? `<span class="fmin">Día ocupado</span>` : OFJ.has(x.jornada) ? `<span class="fmin">Otra oferta ese día</span>`
       : `<button class="of" data-h="${x.id}" style="width:auto;padding:0 14px;margin:0;height:38px">Ofertar</button>`;
     return `<div class="ff ${e === 'm' ? 'mio' : ''}"><div style="flex:1;min-width:0"><b>${h(nom(x))}</b><small><span class="ciu">${h(x.ciudad.replace(' de la Frontera', ''))}</span>${eur(pg)}${C[x.id] && C[x.id].banda_id !== B.id ? ' · ' + h(C[x.id].bandas.nombre) : ''}</small></div>${acc}</div>`; };
   v.innerHTML = `<section><h2>Buscar contratos</h2><div class="res"><div><span class="num">${mios.length} de ${maxC(B.nivel)}</span><small>contratos</small></div><div><span class="num">${Object.keys(O).length} de ${P.max_ofertas}</span><small>ofertas</small></div></div>
   <div class="cupo"><b>Con tu nivel actual (${B.nivel}) solo puedes tocar en ${maxC(B.nivel)} contratos.</b><br><small>${sigNivelC(B.nivel) ? `Al llegar al nivel ${sigNivelC(B.nivel)} podrás tener ${maxC(sigNivelC(B.nivel))}.` : 'Ya tienes el máximo posible.'} ${libres ? `Te ${libres === 1 ? 'queda 1 hueco' : 'quedan ' + libres + ' huecos'}.` : 'Ahora mismo no te queda ningún hueco libre.'}</small></div>
-  <p class="nota">Solo puedes tocar con una hermandad por jornada. Las ofertas se presentan en el día de ensayo y se resuelven a las 00:00.</p></section>
+  <p class="nota">Solo puedes tocar con una hermandad por jornada. Las ofertas y los rescates se presentan en el día de ensayo y se resuelven a las 00:00. Las hermandades libres se ofertan; las que ya tienen banda solo se pueden <b>rescatar</b>.</p></section>
+  ${RI.contra.length ? `<section style="border:2px solid #7a1020"><h2>¡Quieren quitarte un contrato!</h2>${RI.contra.map((a, i) => `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${h(a.hermandad)}</b><small style="color:var(--gris)">${h((a.atacantes || []).join(', '))} · oferta ${eur(a.oferta_max)} · conservarlo: ${probDueno(a)} %</small></div><button class="of" data-df="${i}" style="width:auto;padding:0 14px;margin:0;height:40px">Defender</button></div>`).join('')}</section>` : ''}
+  ${RI.mio ? `<section><h2>Tu rescate</h2><p class="nota" style="margin:0">Has intentado quitar <b>${h((H.find(x => x.id === RI.mio.hermandad_id) || {}).nombre || '')}</b>. Se resuelve a las 00:00. Oferta reservada: ${eur(RI.mio.oferta)}.</p></section>` : ''}
   ${ofs.length ? `<section><h2>Tus ofertas por orden de preferencia</h2>
   <p class="nota">Se resuelven de la primera a la última. ${libres < ofs.length ? `<b>Solo te caben ${libres} contrato${libres === 1 ? '' : 's'} más: si ganas más, se descartan las últimas de tu lista.</b>` : `Te caben ${libres} contrato${libres === 1 ? '' : 's'} más.`}</p>
   ${ofs.map((o, i) => `<div class="fila"><span class="pill ${i < libres ? 'p2' : ''}" style="min-width:26px;text-align:center">${i + 1}</span><div style="flex:1"><b style="display:block">${h(nom(H.find(x => x.id === o.hermandad_id)))}</b><small style="color:var(--gris)">${H.find(x => x.id === o.hermandad_id).jornada}${H.find(x => x.id === o.hermandad_id).ciudad !== 'Sevilla' ? ' · ' + H.find(x => x.id === o.hermandad_id).ciudad : ''}${i >= libres ? ' · no cabe' : ''}</small></div>
@@ -723,7 +785,7 @@ async function pContratos() {
   <button data-d="${i}" aria-label="Bajar" ${i === ofs.length - 1 ? 'disabled' : ''} style="width:44px;height:44px;border:0;border-radius:12px;background:#efe6f7;color:#2a1238;font:700 18px inherit;margin-left:6px">▼</button></div>`).join('')}</section>` : ''}
   <h2 class="jh mio">Tus contratos actuales</h2>
   ${mios.length ? mios.slice().sort((x, y) => JORN.indexOf(x.jornada) - JORN.indexOf(y.jornada)).map(x => fuera(x) ? `<div class="fj" style="margin-top:10px">${x.jornada}</div>` + filaF(x) : tarjeta(x, 'm', p)).join('') : '<section><p class="nota" style="margin:0">Todavía no tienes contratos. Presenta ofertas más abajo.</p></section>'}
-  <div class="sepdis"><h2>Contratos disponibles</h2><p>Hermandades a las que aún puedes presentar oferta. Los de arriba ya son tuyos.</p></div>
+  <div class="sepdis"><h2>Contratos disponibles</h2><p>Libres: presenta oferta. Con banda: puedes intentar rescatarlas. Los de arriba ya son tuyos.</p></div>
   <section class="fuerasec"><button class="fbtn" id="abf" aria-expanded="${abF}"><span>Contratos fuera de Sevilla${mios.filter(fuera).length ? ' · ' + mios.filter(fuera).length + (mios.filter(fuera).length === 1 ? ' tuyo' : ' tuyos') : ''}</span><b>${abF ? '▲' : '▼'}</b></button>
   ${abF ? `<p class="nota">Hermandades de otras ciudades. Se consiguen igual que las de Sevilla y pagan lo mismo, pero cada jornada te cuesta <b>${eur(viaje)}</b> de desplazamiento. Cuentan dentro de tu cupo y se ordenan en la misma lista de preferencia. Si llueve, la banda no tiene regreso: la hermandad se recoge. Aquí no hay carrera oficial: solo salida, recorrido y entrada.</p>
   <div class="chips"><button class="seg ${ciu === 'todas' ? 'on' : ''}" data-c="todas">Todas</button>${ciudades.map(c => `<button class="seg ${ciu === c ? 'on' : ''}" data-c="${h(c)}">${h(c.replace(' de la Frontera', ''))}</button>`).join('')}</div>
@@ -735,6 +797,9 @@ async function pContratos() {
   v.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { ciu = b.dataset.c; pContratos(); });
   v.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { fil = b.dataset.f; pContratos(); });
   v.querySelectorAll('[data-h]').forEach(b => b.onclick = () => modalOferta(H.find(x => x.id === +b.dataset.h)));
+  v.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => modalRescate(H.find(x => x.id === +b.dataset.rs)));
+  v.querySelectorAll('[data-rc]').forEach(b => b.onclick = () => modalRescindir(H.find(x => x.id === +b.dataset.rc)));
+  v.querySelectorAll('[data-df]').forEach(b => b.onclick = () => modalDefensa(RI.contra[+b.dataset.df]));
   const mover = async (i, d) => { const ids = ofs.map(o => o.id); [ids[i], ids[i + d]] = [ids[i + d], ids[i]]; const {error} = await sb.rpc('ordenar_ofertas', {p_ids: ids}); if (error) aviso(error.message); pContratos(); };
   v.querySelectorAll('[data-u]').forEach(b => b.onclick = () => mover(+b.dataset.u, -1));
   v.querySelectorAll('[data-d]').forEach(b => b.onclick = () => mover(+b.dataset.d, 1));
@@ -767,7 +832,7 @@ async function resumenOfertas() {
   if (!data || !data.length || !document.getElementById('rsum')) return;
   el.hidden = false; el.innerHTML = htmlResumenOfertas(data);
 }
-const MOTIVO = {maximo: 'No la necesitabas: ya tenías el máximo de contratos.', dia: 'Ya tenías otro contrato ese día.', nivel: 'Tu nivel ya no llegaba al mínimo.', compat: 'Tu compatibilidad ya no llegaba al mínimo.', dinero: 'No te llegaba el dinero para la oferta.'};
+const MOTIVO = {maximo: 'No la necesitabas: ya tenías el máximo de contratos.', dia: 'Ya tenías otro contrato ese día.', nivel: 'Tu nivel ya no llegaba al mínimo.', compat: 'Tu compatibilidad ya no llegaba al mínimo.', dinero: 'No te llegaba el dinero para la oferta.', ocupada: 'Esa hermandad ya tenía banda: solo se puede rescatar.'};
 function htmlResumenOfertas(data) {
   const g = t => data.filter(x => x.tipo === t), ln = (x, txt) => `<li><b>${h(x.hermandad)}</b> <small style="color:var(--gris)">· ${h(x.jornada)}</small><br><small>${txt}</small></li>`;
   const bloque = (tit, col, filas) => filas.length ? `<div style="margin-top:10px"><b style="color:${col}">${tit}</b><ul style="margin:4px 0 0;padding-left:18px">${filas.join('')}</ul></div>` : '';
@@ -775,6 +840,7 @@ function htmlResumenOfertas(data) {
   return `<h2>Así quedaron los contratos</h2>
   ${bloque('Conseguidos', '#14532d', g('ganada').map(x => ln(x, x.otra ? `Se lo quitaste a ${h(x.otra)}.` : 'Estaba libre.')))}
   ${bloque('No conseguidos', '#7a1020', perd)}
+  ${bloque('Has defendido', '#14532d', g('defendida').map(x => ln(x, `Resististe el intento de ${h(x.otra)}.`)))}
   ${bloque('Te los han quitado', '#7a1020', g('robada').map(x => ln(x, `Ahora los tiene ${h(x.otra)}.`)))}`;
 }
 
