@@ -245,6 +245,7 @@ async function init() {
   await sb.rpc('refrescar_dia');
   const {data: b} = await sb.from('bandas').select('*, repertorio(marcha_id, marchas(estilo,propia_de))').eq('id', session.user.id).maybeSingle();
   B = b;
+  if (b) { const {data: cn} = await sb.from('contratos').select('hermandad_id').eq('banda_id', session.user.id); SINCON = !(cn && cn.length); }
   b ? vistaApp() : vistaCrear();
 }
 
@@ -416,13 +417,13 @@ async function verNoticias() {
 }
 
 async function pInicio() {
-  const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana';
+  const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana', semP = sem && !SINCON;
   const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
   document.getElementById('vista').innerHTML = `
   <section id="ratq" hidden></section>${new Date().toLocaleDateString('sv-SE', {timeZone: 'Europe/Madrid'}) === '2026-11-25' ? `<section style="border-left:5px solid #e8b84a"><h2>Novedad: el rescate de contratos</h2><p style="margin:0 0 6px">Ya no se puede quitar un contrato con una oferta normal. Las hermandades libres se ofertan como siempre. Las que ya tienen banda se pueden <b>rescatar</b> (pestaña Contratos, día de ensayo):</p><p class="nota" style="margin:0">• Cuesta 1 acción y ${P.rescate_xp} de experiencia, se gane o no.<br>• Si ganas, pagas el ${P.rescate_pct} % de tu dinero a la banda dueña y el contrato queda a ${P.rescate_anios} años, blindado.<br>• Probabilidad: ${P.rescate_base} % para el dueño y ${100 - P.rescate_base} % para ti. El dueño puede pagar para defenderse y subirla.<br>• Un rescate por banda y temporada. También puedes rescindir un contrato pagando una indemnización.</p></section>` : ''}
   ${sem ? '<section id="rsum" hidden></section>' : ''}
-  <section>${sem ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. Toca cada jornada cuando quieras. A las 00:00, las que no hayas tocado se resolverán solas y cobrarás solo la mitad de dinero y de experiencia.</p><div id="sj"></div>`
-  : `<h2>Día de ensayo</h2><div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
+  <section>${semP ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. Toca cada jornada cuando quieras. A las 00:00, las que no hayas tocado se resolverán solas y cobrarás solo la mitad de dinero y de experiencia.</p><div id="sj"></div>`
+  : `<h2>${sem ? 'Semana Santa sin procesiones' : 'Día de ensayo'}</h2>${sem ? '<p style="margin:0 0 8px">Hoy es día de procesiones, pero tu banda no tiene contratos. Mientras tanto puedes ensayar, componer y montar marchas con tus acciones.</p>' : ''}<div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
   <div class="dots" aria-hidden="true">${Array.from({length: P.acciones_dia}, (_, i) => `<i class="${i < a ? '' : 'off'}"></i>`).join('')}</div>
   <button id="ens" class="fund" style="margin-top:10px" ${a < 1 ? 'disabled' : ''}>Ensayar (1 acción)</button>`}
   <div class="fila2"><span>Nivel ${B.nivel}</span><span>${B.experiencia} xp</span></div><div class="xp"><i style="width:${prog}%"></i></div>
@@ -434,8 +435,8 @@ async function pInicio() {
   <section><h2>Estilo de la banda</h2><div class="barra"><i style="width:${p.pf}%"></i></div>
   <div class="fila2"><span>Fúnebre ${p.pf} %</span><span>Alegre ${100 - p.pf} %</span></div>
   <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>`;
-  if (!sem) document.getElementById('ens').onclick = ensayar;
-  if (sem) { semanaLista(); resumenOfertas(); }
+  if (!semP) document.getElementById('ens').onclick = ensayar;
+  if (sem) { if (semP) semanaLista(); resumenOfertas(); }
   if (!sem) sb.rpc('rescates_info').then(({data: ri}) => { const el = document.getElementById('ratq'); if (!el || !ri || !ri.contra || !ri.contra.length) return; const L = ri.contra; el.style.cssText = 'border:2px solid #7a1020;background:#fff3f0'; el.hidden = false; el.innerHTML = `<h2 style="color:#7a1020">¡Quieren quitarte ${L.length === 1 ? 'un contrato' : 'contratos'}!</h2>` + L.map((a, i) => `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${h(a.hermandad)}</b><small style="color:var(--gris)">${h((a.atacantes || []).join(', '))} · oferta ${eur(a.oferta_max)} · conservarlo: ${probDueno(a)} %</small></div><button class="of" data-dfi="${i}" style="width:auto;padding:0 14px;margin:0;height:40px">Defender</button></div>`).join('') + '<p class="nota" style="margin:6px 0 0">Se resuelve a las 00:00.</p>'; el.querySelectorAll('[data-dfi]').forEach(b => b.onclick = () => modalDefensa(L[+b.dataset.dfi])); });
   const [rc, rn] = await Promise.all([sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', B.id), sb.from('noticias').select('id,temporada,texto,creada,categoria').order('id', {ascending: false}).limit(3)]);
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada)), ns = rn.data || [];
@@ -629,6 +630,8 @@ const JORN = ['Vísperas', 'Domingo de Ramos', 'Lunes Santo', 'Martes Santo', 'M
 let H = null, fil = 'todas', ciu = 'todas', abF = false;
 const compat = (x, p) => Math.round(0.7 * (100 - Math.abs(p.pf - x.pct_funebre)) + 0.3 * (100 - Math.abs(p.pot - (100 - x.pct_funebre))));
 
+let SINCON = false;
+const ensOK = () => E.fase === 'ensayo' || SINCON;
 let E = {fase: 'ensayo'}, C = {}, O = {}, MYJ = new Set(), OFJ = new Set();
 const horasDe = x => { if (!x.hora_salida || !x.hora_recogida) return P.horas_ref; const m = t => +t.slice(0, 2) * 60 + +t.slice(3, 5); let d = (m(x.hora_recogida) - m(x.hora_salida)) / 60; return d <= 0 ? d + 24 : d; };
 const pagoDe = (x, nivel) => Math.round(({'Fácil': P.pago_facil, 'Media': P.pago_media, 'Alta': P.pago_alta}[x.categoria] || P.pago_extrema) * horasDe(x) / P.horas_ref * (1 + P.nivel_pct / 100 * (Math.max(nivel, 1) - 1)) / 5) * 5;
@@ -1081,7 +1084,7 @@ function pLibre() {
 
 async function ensayar() {
   LIBRE = false;
-  if (E.fase !== 'ensayo') return aviso('Hoy es día de Semana Santa.');
+  if (!ensOK()) return aviso('Hoy es día de Semana Santa.');
   if (B.acciones < 1) return aviso('No te quedan acciones hoy.');
   ctxA();
   if (!IMP) { const {data} = await sb.from('imprevistos').select('*').order('id'); IMP = data || []; }
@@ -1634,7 +1637,7 @@ async function pMontaje() {
     CAT = data;
   }
   const mias = new Set((B.repertorio || []).map(r => r.marcha_id)), nrep = mias.size, max = MAXREP(), por = Math.max(0, (P.montajes_dia || 10) - (B.montadas_hoy || 0)), pr = P.precio_montaje || 300;
-  const ens = E.fase === 'ensayo', n = MS.size, libres = max - nrep;
+  const ens = ensOK(), n = MS.size, libres = max - nrep;
   const base = CAT.filter(m => MT === 'montar' ? !m.propia_de : MT === 'pro' ? mias.has(m.id) && m.propia_de : mias.has(m.id));
   const lista = base.filter(m => MF === 'todas' || (MF === 'fun' ? m.estilo === 'Fúnebre' : m.estilo === 'Alegre'));
   const fila = m => {
@@ -1664,7 +1667,7 @@ async function pMontaje() {
     if (error) { mn.disabled = false; return aviso(error.message); }
     MS = new Set(); CAT = null; await init();
   };
-  if (!ens) aviso('Hoy es día de procesiones: solo puedes montar marchas en día de ensayo.');
+  if (!ens) aviso('Hoy es día de procesiones: solo puedes montar marchas en día de ensayo (o si no tienes contratos).');
 }
 
 // ======== Composición ========
@@ -1673,11 +1676,11 @@ const ESTILOS = {fun: ['Lenta', 'Lenta con cornetas', 'Fúnebre'], ale: ['Con co
 const INVS = [['boceto', 'Boceto', 'compo_boceto', 'Calidad 40-60'], ['cuidada', 'Cuidada', 'compo_cuidada', 'Calidad 60-80'], ['magistral', 'Magistral', 'compo_magistral', 'Calidad 80-100']];
 function pComponer() {
   const v = document.getElementById('vista'), acc = P.compo_acciones || 4, inv = INVS.find(i => i[0] === CF.inv), coste = P[inv[2]];
-  const nrep = (B.repertorio || []).length, ens = E.fase === 'ensayo';
+  const nrep = (B.repertorio || []).length, ens = ensOK();
   const ok = CF.titulo.trim().length >= 2 && CF.comp.trim().length >= 2 && CF.estilo && ens && B.acciones >= acc && B.dinero >= coste && nrep < MAXREP();
   const falta = [];
   if (coste === undefined) falta.push('el juego no tiene configurados los precios de composición (falta ejecutar el SQL 15a)');
-  if (!ens) falta.push('hoy es día de Semana Santa: solo se compone en día de ensayo');
+  if (!ens) falta.push('hoy es día de Semana Santa: solo se compone en día de ensayo (o si no tienes contratos)');
   if (B.acciones < acc) falta.push(`te quedan ${B.acciones} acciones y componer cuesta ${acc}`);
   if (coste !== undefined && B.dinero < coste) falta.push(`esta inversión cuesta ${eur(coste)} y tienes ${eur(B.dinero)}`);
   if (nrep >= MAXREP()) falta.push('tu repertorio está completo');
