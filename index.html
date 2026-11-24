@@ -344,7 +344,7 @@ function reglas(primera) {
     ['El calendario', ic2('<rect x="10" y="14" width="44" height="40" rx="5"/><path d="M10 26h44M22 8v10M42 8v10M22 36h6M36 36h6M22 46h6"/>'),
      `Los días se alternan: un día es de <b>ensayo</b> y el siguiente de <b>Semana Santa</b>. Cada pareja de días es una temporada.<br><br>El juego sigue su ritmo aunque no entres: al cierre de cada día (a las 00:00) se resuelve todo.`],
     ['Los ensayos', ic2('<circle cx="32" cy="32" r="22"/><path d="M32 20v12l9 6"/>'),
-     `En los días de ensayo tienes <b>${P.acciones_dia || 6} acciones</b>. Cada ensayo gasta una y te pone a prueba con un minijuego: el pulso, la afinación, marcar el paso, repetir la frase o correr hacia el templo. A veces surge un imprevisto.<br><br>Ganas experiencia (xp) y subes de nivel. Cuanto más ensayes antes de la Semana Santa, mejor saldrá la actuación.`],
+     `En los días de ensayo tienes <b>${P.acciones_dia || 6} acciones</b>. Cada ensayo gasta una y te pone a prueba con un minijuego: el pulso, la afinación, marcar el paso, repetir la frase, correr hacia el templo, tocar al compás o llevar la partitura al atril. A veces surge un imprevisto.<br><br>Ganas experiencia (xp) y subes de nivel. Cuanto más ensayes antes de la Semana Santa, mejor saldrá la actuación.`],
     ['Los contratos', ic2('<path d="M18 6h22l10 10v42H18z"/><path d="M40 6v10h10M24 28h20M24 38h20M24 48h12"/>'),
      `Los días de ensayo presentas <b>ofertas</b> a las hermandades, hasta ${P.max_ofertas || 5} cada vez. Puedes mejorar tu oferta con una rebaja, un regalo o una saya, y ordenarlas por prioridad. Cuántos contratos puedes tener a la vez depende de tu nivel: 3 al empezar y hasta 10 en los niveles más altos.<br><br>También hay hermandades de <b>otras ciudades</b> (Utrera, Écija, Carmona…): se consiguen igual y pagan lo mismo, pero cada jornada te cuesta ${eur(P.desplazamiento || 400)} de desplazamiento y allí no hay carrera oficial. Cuentan dentro de tu cupo.<br><br>Al cierre del día las hermandades eligen. Los contratos ganados se renuevan por años, y cada hermandad paga según su categoría.`],
     ['La Semana Santa', ic2('<path d="M20 44a10 10 0 010-20 14 14 0 0126-4 10 10 0 012 24z"/><path d="M24 52l-3 6M34 52l-3 6M44 52l-3 6"/>'),
@@ -956,7 +956,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 let LIBRE = false;
 function pLibre() {
   const v = document.getElementById('vista');
-  const J = [['El pulso', 'Toca el bombo justo cuando el aro llegue al círculo.', pulso], ['Afinación', 'Para la aguja en la zona verde, ronda a ronda.', afinacion], ['Marcar el paso', 'Toca el pie que se ilumina, izquierdo o derecho.', paso], ['Repetir la frase', 'Escucha la frase y repítela en el mismo orden.', frase], ['A toda prisa al templo', 'Corre bajo la lluvia, salta y agáchate hasta llegar a la iglesia.', carrera]];
+  const J = [['El pulso', 'Toca el bombo justo cuando el aro llegue al círculo.', pulso], ['Afinación', 'Para la aguja en la zona verde, ronda a ronda.', afinacion], ['Marcar el paso', 'Toca el pie que se ilumina, izquierdo o derecho.', paso], ['Repetir la frase', 'Escucha la frase y repítela en el mismo orden.', frase], ['A toda prisa al templo', 'Corre bajo la lluvia, salta y agáchate hasta llegar a la iglesia.', carrera], ['Al compás de la marcha', 'Toca el instrumento de cada carril cuando la nota llegue a la línea.', compas], ['La partitura al viento', 'Pasa la partitura por los huecos entre ramas y balcones hasta el atril.', partitura]];
   v.innerHTML = `<section><h2>Juegos</h2><p class="nota" style="margin:0">Juega a los minijuegos del ensayo cuando quieras y las veces que quieras. Aquí no se gana experiencia ni se gastan acciones: es solo para practicar o pasar el rato. Está disponible tanto en ensayo como en Semana Santa.</p></section>
   <section>${J.map(([t, d], i) => `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${t}</b><small style="color:var(--gris)">${d}</small></div><button class="of" data-j="${i}" style="width:auto;padding:0 16px;margin:0;height:40px">Jugar</button></div>`).join('')}</section>`;
   v.querySelectorAll('[data-j]').forEach(b => b.onclick = () => { LIBRE = true; ctxA(); J[+b.dataset.j][2](); });
@@ -969,7 +969,7 @@ async function ensayar() {
   ctxA();
   if (!IMP) { const {data} = await sb.from('imprevistos').select('*').order('id'); IMP = data || []; }
   if (IMP.length && Math.random() < 0.3) return imprevisto(IMP[Math.floor(Math.random() * IMP.length)]);
-  [pulso, afinacion, paso, frase, carrera][Math.floor(Math.random() * 5)]();
+  [pulso, afinacion, paso, frase, carrera, compas, partitura][Math.floor(Math.random() * 7)]();
 }
 
 
@@ -1063,6 +1063,103 @@ function carrera() {
       nts.forEach(n => { if (!n.c && choca(me, {x: RX + n.x - dist - 6, y: n.y - 18, w: 16, h: 20})) { n.c = true; notas++; snd('ok'); } });
       if (dist >= L) { fase = 'llega'; msgT = 1; finT = 1.6; }
     } else { finT -= dt; if (fase === 'llega') dist = Math.min(L + 60, dist + 120 * dt); if (finT <= 0) { vivo = false; return enviar(puntuacion()); } }
+    pinta(); raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+
+// ---- 6. Al compás de la marcha (carriles)
+function compas() {
+  const W = 360, H = 300, LY = 250, CAI = 1.5, LN = 4, LW = W / LN;
+  const NOMB = ['Corneta', 'Caja', 'Bombo', 'Clarinete'], SON = ['corneta', 'caja', 'bombo', 'clarinete'], COL = ['#e8c34a', '#c0392b', '#8e5bd1', '#2e9e6a'];
+  const notas = []; let k = 0, last = -1, rep = 0;
+  for (let b = 0; b < 52; b++) {
+    let l = Math.floor(Math.random() * LN); if (l === last && rep >= 2) l = (l + 1 + Math.floor(Math.random() * 3)) % LN;
+    rep = l === last ? rep + 1 : 1; last = l;
+    notas.push({t: 2 + b * 0.6, l, est: 0}); // est: 0 pendiente, 1 acertada, 2 fallada
+    if (b > 6 && Math.random() < 0.25) notas.push({t: 2 + b * 0.6 + 0.3, l: (l + 1 + Math.floor(Math.random() * 3)) % LN, est: 0});
+  }
+  notas.sort((a, b) => a.t - b.t);
+  let vivo = true, raf = 0, t0 = 0, pts = 0, fb = '', fbT = 0, fbC = '#fff';
+  const enviar = hecho(() => { vivo = false; cancelAnimationFrame(raf); });
+  const e = mjShell('Al compás de la marcha', 'Toca el instrumento de cada carril justo cuando la nota llegue a la línea dorada.',
+    `<div class="stg" style="height:300px;padding:0"><canvas id="cv" width="${W * 2}" height="${H * 2}" style="width:100%;height:100%;display:block"></canvas></div>
+    <div class="mjb" style="margin-top:8px;gap:6px">${NOMB.map((n, i) => `<button class="of" data-l="${i}" style="height:64px;margin:0;padding:0;background:${COL[i]};color:#fff;font-size:14px;touch-action:manipulation">${n}</button>`).join('')}</div>`,
+    () => enviar(30));
+  const c = document.getElementById('cv').getContext('2d'); c.scale(2, 2);
+  const ahora = () => (performance.now() - t0) / 1000;
+  const toca = l => {
+    if (!vivo) return; snd(SON[l]); const t = ahora();
+    let m = null, md = 9; notas.forEach(n => { if (n.est === 0 && n.l === l) { const d = Math.abs(n.t - t); if (d < md) { md = d; m = n; } } });
+    if (m && md <= 0.2) { m.est = 1; const g = md < 0.07 ? 1 : md < 0.13 ? 0.7 : 0.4; pts += g; fb = g === 1 ? '¡Justo!' : g === 0.7 ? 'Bien' : 'Casi'; fbC = g === 1 ? '#f4d98c' : '#fff'; }
+    else { pts = Math.max(0, pts - 0.3); fb = 'Fuera de tiempo'; fbC = '#ff9b9b'; }
+    fbT = 0.45;
+  };
+  e.querySelectorAll('[data-l]').forEach(b => b.onpointerdown = () => toca(+b.dataset.l));
+  const pinta = t => {
+    c.fillStyle = '#1d0e29'; c.fillRect(0, 0, W, H);
+    for (let i = 0; i < LN; i++) { c.fillStyle = i % 2 ? '#26122f' : '#2d1638'; c.fillRect(i * LW, 0, LW, H); c.fillStyle = COL[i] + '22'; c.fillRect(i * LW, LY - 20, LW, 40); }
+    c.strokeStyle = '#e8c34a'; c.lineWidth = 3; c.beginPath(); c.moveTo(0, LY); c.lineTo(W, LY); c.stroke();
+    notas.forEach(n => { if (n.est === 1) return; const y = LY - (n.t - t) / CAI * LY; if (y < -20 || y > H + 20) return;
+      c.fillStyle = n.est === 2 ? '#555' : COL[n.l]; c.beginPath(); c.arc(n.l * LW + LW / 2, y, 17, 0, 7); c.fill(); c.strokeStyle = '#fff6'; c.lineWidth = 2; c.stroke(); });
+    c.fillStyle = '#fff'; c.font = '700 13px Manrope,sans-serif'; c.fillText(`${Math.round(Math.max(0, pts) / notas.length * 100)} %`, 10, 20);
+    if (fbT > 0) { c.textAlign = 'center'; c.font = '700 22px Manrope,sans-serif'; c.fillStyle = fbC; c.fillText(fb, W / 2, 130); c.textAlign = 'left'; }
+  };
+  let ult = 0;
+  const tick = ts => {
+    if (!vivo) return; if (!t0) t0 = ts; const t = (ts - t0) / 1000, dt = Math.min(.05, t - ult); ult = t; fbT -= dt;
+    notas.forEach(n => { if (n.est === 0 && t > n.t + 0.2) n.est = 2; });
+    pinta(t);
+    if (t > notas[notas.length - 1].t + 1) { vivo = false; return enviar(Math.round(Math.min(100, Math.max(0, pts) / notas.length * 100))); }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+// ---- 7. La partitura al viento (vuelo)
+function partitura() {
+  const W = 360, H = 320, SUELO = 290, X = 90, PUERTAS = 18, ESP = 230, VEL = 150;
+  let vivo = true, raf = 0, last = 0, y = 150, vy = 0, esperando = true, scroll = 0, pasadas = 0, fase = 'vuela', finT = 0;
+  const pu = []; for (let i = 0; i < PUERTAS; i++) { const hueco = 124 - 22 * i / PUERTAS; pu.push({x: 420 + i * ESP, c: 80 + hueco / 2 + Math.random() * (SUELO - 160 - hueco + 20), h: hueco, ok: false}); }
+  const meta = 420 + PUERTAS * ESP + 120;
+  const enviar = hecho(() => { vivo = false; cancelAnimationFrame(raf); window.removeEventListener('keydown', kd); });
+  const e = mjShell('La partitura al viento', 'Toca para que la partitura suba y pásala por los huecos entre las ramas y los balcones. Hay que llevarla hasta el atril.',
+    `<div class="stg" style="height:320px;padding:0"><canvas id="cv" width="${W * 2}" height="${H * 2}" style="width:100%;height:100%;display:block;touch-action:none"></canvas></div>
+    <div class="mjb" style="margin-top:8px"><button class="of" id="bup" style="height:64px;margin:0;touch-action:manipulation">Subir</button></div>`,
+    () => enviar(30));
+  const c = document.getElementById('cv').getContext('2d'); c.scale(2, 2);
+  const sube = () => { if (fase !== 'vuela') return; esperando = false; vy = -300; snd('tic'); };
+  const kd = ev => { if (ev.code === 'Space' || ev.code === 'ArrowUp') { ev.preventDefault(); sube(); } };
+  window.addEventListener('keydown', kd);
+  document.getElementById('bup').onpointerdown = sube; document.getElementById('cv').onpointerdown = sube;
+  const puntuacion = () => Math.round(Math.min(100, pasadas / PUERTAS * 100));
+  const hoja = () => { c.save(); c.translate(X, y); c.rotate(Math.max(-.5, Math.min(.7, vy / 500))); c.fillStyle = '#f6efd9'; c.fillRect(-12, -15, 24, 30); c.strokeStyle = '#7a6a4a'; c.lineWidth = 1; c.strokeRect(-12, -15, 24, 30);
+    c.strokeStyle = '#555'; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(-9, -9 + i * 5); c.lineTo(9, -9 + i * 5); c.stroke(); } c.fillStyle = '#222'; c.beginPath(); c.arc(-2, 1, 2.2, 0, 7); c.arc(5, -4, 2.2, 0, 7); c.fill(); c.restore(); };
+  const pinta = () => {
+    const gr = c.createLinearGradient(0, 0, 0, SUELO); gr.addColorStop(0, '#3a2058'); gr.addColorStop(1, '#c58aa8'); c.fillStyle = gr; c.fillRect(0, 0, W, H);
+    c.fillStyle = '#3a1d4e'; const o = (scroll * 0.3) % 220; for (let k = -1; k < 3; k++) { const x = k * 220 - o + 30; c.fillRect(x, SUELO - 110, 26, 110); c.fillRect(x + 90, SUELO - 70, 100, 70); }
+    c.fillStyle = '#2b1a2e'; c.fillRect(0, SUELO, W, H - SUELO);
+    pu.forEach(p => { const x = p.x - scroll; if (x < -60 || x > W + 10) return; const top = p.c - p.h / 2, bot = p.c + p.h / 2;
+      c.fillStyle = '#2f6b3a'; c.fillRect(x, 0, 40, top); c.fillStyle = '#3f8a4a'; c.fillRect(x - 4, top - 14, 48, 14); c.fillStyle = '#f08a24'; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(x + 8 + i * 12, top - 20, 4, 0, 7); c.fill(); }
+      c.fillStyle = '#2a2a33'; c.fillRect(x, bot, 40, SUELO - bot); c.fillStyle = '#4a4a55'; c.fillRect(x - 4, bot, 48, 10); c.fillStyle = '#6a3a2a'; c.fillRect(x + 4, bot - 14, 32, 14); c.fillStyle = '#d6405a'; c.beginPath(); c.arc(x + 14, bot - 18, 5, 0, 7); c.arc(x + 26, bot - 18, 5, 0, 7); c.fill(); });
+    const mx = meta - scroll; if (mx < W + 60) { c.fillStyle = '#5a3a1a'; c.fillRect(mx, SUELO - 70, 6, 70); c.fillRect(mx - 18, SUELO - 76, 42, 8); c.fillStyle = '#f6efd9'; c.fillRect(mx - 14, SUELO - 112, 34, 34); }
+    hoja();
+    c.fillStyle = '#fff'; c.font = '700 13px Manrope,sans-serif'; c.fillText(`Huecos: ${pasadas} de ${PUERTAS}`, 10, 20);
+    if (esperando) { c.textAlign = 'center'; c.font = '700 20px Manrope,sans-serif'; c.fillStyle = '#f4d98c'; c.fillText('Toca para empezar', W / 2, 90); c.textAlign = 'left'; }
+    if (fase !== 'vuela') { c.textAlign = 'center'; c.font = '700 20px Manrope,sans-serif'; c.fillStyle = '#000a'; c.fillRect(30, 110, 300, 50); c.fillStyle = '#f4d98c'; c.fillText(fase === 'llega' ? '¡Partitura en el atril!' : `Has pasado ${pasadas} huecos`, W / 2, 142); c.textAlign = 'left'; }
+  };
+  const tick = ts => {
+    if (!vivo) return; const dt = Math.min(.033, (ts - (last || ts)) / 1000); last = ts;
+    if (fase === 'vuela') {
+      if (!esperando) {
+        vy += 900 * dt; y += vy * dt; scroll += VEL * dt;
+        pu.forEach(p => { const x = p.x - scroll; if (!p.ok && x + 40 < X - 12) { p.ok = true; pasadas++; }
+          if (X + 11 > x && X - 11 < x + 40 && (y - 14 < p.c - p.h / 2 || y + 14 > p.c + p.h / 2)) { fase = 'cae'; finT = 1.4; snd('mal'); } });
+        if (y + 15 > SUELO || y - 15 < 0) { y = Math.max(15, Math.min(SUELO - 15, y)); if (fase === 'vuela') { fase = 'cae'; finT = 1.4; snd('mal'); } }
+        if (fase === 'vuela' && scroll >= meta - X - 20) { fase = 'llega'; finT = 1.4; snd('ok'); }
+      } else y = 150 + Math.sin(ts / 250) * 6;
+    } else { finT -= dt; if (finT <= 0) { vivo = false; return enviar(puntuacion()); } }
     pinta(); raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
