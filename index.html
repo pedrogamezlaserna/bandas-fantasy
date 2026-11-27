@@ -174,7 +174,7 @@ function vistaAuth(reg) {
   <label for="u">Usuario</label><input id="u" autocomplete="username" autocapitalize="none">
   ${reg ? '<p class="nota" style="margin:4px 0 0"><b>Elígelo bien:</b> este nombre será el del director de la banda y no se podrá cambiar más adelante. Puede ser un pseudónimo o tu nombre.</p>' : ''}
   <label for="p">Contraseña</label><input id="p" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}">
-  ${reg ? '<label for="co">Correo electrónico</label><input id="co" type="email" autocomplete="email" autocapitalize="none"><p class="nota" style="margin:4px 0 0">Solo lo ve el administrador, para saber quién eres. No se envía ningún correo.</p>' : ''}
+  ${reg ? '<label for="co">Correo electrónico</label><input id="co" type="email" autocomplete="email" autocapitalize="none"><p class="nota" style="margin:4px 0 0">Solo lo ve el administrador, para saber quién eres. Se usará únicamente para avisarte de cosas importantes del juego (por ejemplo, si quieren quitarte un contrato) y podrás desactivarlo.</p>' : ''}
   <p id="aviso" class="aviso" hidden></p>
   <button id="go">${reg ? 'Crear cuenta' : 'Entrar'}</button>
   <button class="link" id="alt">${reg ? 'Ya tengo cuenta' : 'Quiero registrarme'}</button>
@@ -408,10 +408,10 @@ async function verNoticias() {
   const todas = data || [], CATS = ['Todas', 'Acuerdos', 'Mentideros', 'La banda', 'Temporada'];
   const pintaN = () => {
     const l = NCAT === 'Todas' ? todas : todas.filter(n => n.categoria === NCAT);
-    ov(`<div class="mj"><div class="tabs3 ntabs">${CATS.map(c => `<button data-nc="${c}" class="${c === NCAT ? 'on' : ''}">${c}</button>`).join('')}</div>
+    ov(`<div class="mj"><button class="b3" id="ok0" style="align-self:flex-end;margin:0 0 6px;width:auto;padding:6px 14px">Cerrar ✕</button><div class="tabs3 ntabs">${CATS.map(c => `<button data-nc="${c}" class="${c === NCAT ? 'on' : ''}">${c}</button>`).join('')}</div>
     <div class="paper" style="text-align:left">${gaceta(l, false, true).replace(/<span class="kick">[^<]*<\/span>/g, NCAT === 'Todas' ? '$&' : '')}</div><button class="b2" id="ok">Cerrar</button></div>`);
     document.querySelectorAll('[data-nc]').forEach(b => b.onclick = () => { NCAT = b.dataset.nc; pintaN(); });
-    document.getElementById('ok').onclick = () => document.getElementById('ov').remove();
+    document.getElementById('ok').onclick = document.getElementById('ok0').onclick = () => document.getElementById('ov').remove();
   };
   pintaN();
 }
@@ -420,7 +420,7 @@ async function pInicio() {
   const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana', semP = sem && !SINCON;
   const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
   document.getElementById('vista').innerHTML = `
-  <section id="ratq" hidden></section>${new Date().toLocaleDateString('sv-SE', {timeZone: 'Europe/Madrid'}) === '2026-11-25' ? `<section style="border-left:5px solid #e8b84a"><h2>Novedad: el rescate de contratos</h2><p style="margin:0 0 6px">Ya no se puede quitar un contrato con una oferta normal. Las hermandades libres se ofertan como siempre. Las que ya tienen banda se pueden <b>rescatar</b> (pestaña Contratos, día de ensayo):</p><p class="nota" style="margin:0">• Cuesta 1 acción y ${P.rescate_xp} de experiencia, se gane o no.<br>• Si ganas, pagas el ${P.rescate_pct} % de tu dinero a la banda dueña y el contrato queda a ${P.rescate_anios} años, blindado.<br>• Probabilidad: ${P.rescate_base} % para el dueño y ${100 - P.rescate_base} % para ti. El dueño puede pagar para defenderse y subirla.<br>• Un rescate por banda y temporada. También puedes rescindir un contrato pagando una indemnización.</p></section>` : ''}
+  <section id="ratq" hidden></section><section id="rfin" hidden></section>${new Date().toLocaleDateString('sv-SE', {timeZone: 'Europe/Madrid'}) === '2026-11-25' ? `<section style="border-left:5px solid #e8b84a"><h2>Novedad: el rescate de contratos</h2><p style="margin:0 0 6px">Ya no se puede quitar un contrato con una oferta normal. Las hermandades libres se ofertan como siempre. Las que ya tienen banda se pueden <b>rescatar</b> (pestaña Contratos, día de ensayo):</p><p class="nota" style="margin:0">• Cuesta 1 acción y ${P.rescate_xp} de experiencia, se gane o no.<br>• Si ganas, pagas el ${P.rescate_pct} % de tu dinero a la banda dueña y el contrato queda a ${P.rescate_anios} años, blindado.<br>• Probabilidad: ${P.rescate_base} % para el dueño y ${100 - P.rescate_base} % para ti. El dueño puede pagar para defenderse y subirla.<br>• Un rescate por banda y temporada. También puedes rescindir un contrato pagando una indemnización.</p></section>` : ''}
   ${sem ? '<section id="rsum" hidden></section>' : ''}
   <section>${semP ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. Toca cada jornada cuando quieras. A las 00:00, las que no hayas tocado se resolverán solas y cobrarás solo la mitad de dinero y de experiencia.</p><div id="sj"></div>`
   : `<h2>${sem ? 'Semana Santa sin procesiones' : 'Día de ensayo'}</h2>${sem ? '<p style="margin:0 0 8px">Hoy es día de procesiones, pero tu banda no tiene contratos. Mientras tanto puedes ensayar, componer y montar marchas con tus acciones.</p>' : ''}<div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
@@ -436,7 +436,7 @@ async function pInicio() {
   <div class="fila2"><span>Fúnebre ${p.pf} %</span><span>Alegre ${100 - p.pf} %</span></div>
   <p class="nota">Repertorio de ${p.nm} marchas. Sonido: finura ${100 - p.pot}, potencia ${p.pot}.</p></section>`;
   if (!semP) document.getElementById('ens').onclick = ensayar;
-  if (sem) { if (semP) semanaLista(); resumenOfertas(); }
+  if (sem) { if (semP) semanaLista(); resumenOfertas(); } else resumenFin();
   if (!sem) sb.rpc('rescates_info').then(({data: ri}) => { const el = document.getElementById('ratq'); if (!el || !ri || !ri.contra || !ri.contra.length) return; const L = ri.contra; el.style.cssText = 'border:2px solid #7a1020;background:#fff3f0'; el.hidden = false; el.innerHTML = `<h2 style="color:#7a1020">¡Quieren quitarte ${L.length === 1 ? 'un contrato' : 'contratos'}!</h2>` + L.map((a, i) => `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${h(a.hermandad)}</b><small style="color:var(--gris)">${h((a.atacantes || []).join(', '))} · oferta ${eur(a.oferta_max)} · conservarlo: ${probDueno(a)} %</small></div><button class="of" data-dfi="${i}" style="width:auto;padding:0 14px;margin:0;height:40px">Defender</button></div>`).join('') + '<p class="nota" style="margin:6px 0 0">Se resuelve a las 00:00.</p>'; el.querySelectorAll('[data-dfi]').forEach(b => b.onclick = () => modalDefensa(L[+b.dataset.dfi])); });
   const [rc, rn] = await Promise.all([sb.from('contratos').select('anios,hermandades(nombre,jornada)').eq('banda_id', B.id), sb.from('noticias').select('id,temporada,texto,creada,categoria').order('id', {ascending: false}).limit(3)]);
   const cs = (rc.data || []).sort((x, y) => JORN.indexOf(x.hermandades.jornada) - JORN.indexOf(y.hermandades.jornada)), ns = rn.data || [];
@@ -829,6 +829,17 @@ const datosActuacion = (a, hm) => ({...a.detalle, decision: a.decision, llueve: 
   coste: a.coste, xp: a.xp, prestigio: a.prestigio, satisfaccion: a.satisfaccion, retraso: a.retraso, auto: a.auto, hermandad: hm.nombre, jornada: hm.jornada,
   fuera: hm.ciudad !== 'Sevilla', ciudad: hm.ciudad, viaje: hm.ciudad !== 'Sevilla' ? ((a.detalle && a.detalle.viaje != null) ? a.detalle.viaje : (P.desplazamiento || 400)) : 0});
 
+async function resumenFin() {
+  const el = document.getElementById('rfin'); if (!el || E.fase !== 'ensayo' || E.temporada < 2) return;
+  const {data} = await sb.from('resultados').select('tipo,hermandad,jornada,motivo').eq('banda_id', B.id).eq('temporada', E.temporada - 1).in('tipo', ['renovada', 'no_renovada']).order('id');
+  if (!data || !data.length || !document.getElementById('rfin')) return;
+  const ln = (x, t) => `<li><b>${h(x.hermandad)}</b> <small style="color:var(--gris)">· ${h(x.jornada)}</small><br><small>${t}</small></li>`;
+  const bl = (tit, col, f) => f.length ? `<div style="margin-top:10px"><b style="color:${col}">${tit}</b><ul style="margin:4px 0 0;padding-left:18px">${f.join('')}</ul></div>` : '';
+  el.hidden = false;
+  el.innerHTML = `<h2>Así acabó la temporada</h2><p class="nota" style="margin:0">Las juntas han decidido sobre los contratos que terminaban.</p>
+  ${bl('Renovados', '#14532d', data.filter(x => x.tipo === 'renovada').map(x => ln(x, `Te renuevan ${h(x.motivo || '')}.`)))}
+  ${bl('No renovados', '#7a1020', data.filter(x => x.tipo === 'no_renovada').map(x => ln(x, 'La junta entrante no te renueva: la hermandad queda libre. Puedes volver a ofertarle.')))}`;
+}
 async function resumenOfertas() {
   const el = document.getElementById('rsum'); if (!el) return;
   const {data} = await sb.from('resultados').select('tipo,hermandad,jornada,otra').eq('banda_id', B.id).eq('temporada', E.temporada).order('id');
@@ -1610,10 +1621,12 @@ function pMiBanda() {
   <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${B.escudo === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div><p class="nota">Cambiar de escudo es gratis.</p></section>
   <section><h2>Repertorio</h2><div class="fila" style="padding-top:0"><div style="flex:1"><b style="display:block">${nm} de ${MAXREP()} marchas</b><small style="color:var(--gris)">${np} propias · el repertorio admite como máximo ${MAXREP()}</small></div></div>
   <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" id="cm">Componer una marcha</button></section>
+  <section><h2>Avisos por correo</h2><label style="display:flex;gap:10px;align-items:center;margin:0"><input type="checkbox" id="avc" style="width:22px;height:22px;margin:0" ${B.avisos_correo === false ? '' : 'checked'}><span>Avisarme por correo si quieren quitarme un contrato</span></label></section>
   <section><h2>Reglas</h2><p class="nota" style="margin:0 0 8px">Un repaso rápido de cómo funciona el juego.</p><button class="of2" id="vrg">Ver las reglas</button></section>
   <section><h2>Contraseña</h2><label for="cp1">Nueva contraseña</label><input id="cp1" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres"><label for="cp2">Repítela</label><input id="cp2" type="password" autocomplete="new-password"><button class="of2" id="cpb">Cambiar contraseña</button></section>`;
   const redo = () => { pMiBanda(); };
   document.getElementById('vrg').onclick = () => reglas(false);
+  document.getElementById('avc').onchange = async ev => { const val = ev.target.checked; const {error} = await sb.rpc('set_avisos_correo', {p_valor: val}); if (error) { ev.target.checked = !val; return aviso(error.message); } B.avisos_correo = val; };
   document.getElementById('cpb').onclick = async () => { const r = await cambiarClave(document.getElementById('cp1').value, document.getElementById('cp2').value); if (r) return aviso(r); aviso(''); document.getElementById('cp1').value = document.getElementById('cp2').value = ''; alert('Contraseña cambiada.'); };
   v.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; FN.tipo = b.dataset.t; redo(); });
   const pv = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; document.getElementById('pv').textContent = full(); document.getElementById('gn').disabled = ya || !full() || full() === B.nombre; };
@@ -1643,20 +1656,20 @@ async function pMontaje() {
     CAT = data;
   }
   const mias = new Set((B.repertorio || []).map(r => r.marcha_id)), nrep = mias.size, max = MAXREP(), por = Math.max(0, (P.montajes_dia || 10) - (B.montadas_hoy || 0)), pr = P.precio_montaje || 300;
-  const ens = ensOK(), n = MS.size, libres = max - nrep;
+  const ens = true, n = MS.size, libres = max - nrep;
   const base = CAT.filter(m => MT === 'montar' ? !m.propia_de : MT === 'pro' ? mias.has(m.id) && m.propia_de : mias.has(m.id));
   const lista = base.filter(m => MF === 'todas' || (MF === 'fun' ? m.estilo === 'Fúnebre' : m.estilo === 'Alegre'));
   const fila = m => {
     const tengo = mias.has(m.id), sel = MS.has(m.id);
-    const btn = MT === 'montar' ? (tengo ? '<button class="mini off" disabled>Ya la tienes</button>' : `<button class="mini ${sel ? 'sel' : ''}" data-id="${m.id}">${sel ? 'Elegida' : 'Elegir'}</button>`) : '';
+    const btn = MT === 'montar' ? (tengo ? '<button class="mini off" disabled>Ya la tienes</button>' : `<button class="mini ${sel ? 'sel' : ''}" data-id="${m.id}">${sel ? 'Elegida' : 'Elegir'}</button>`) : `<button class="mini" data-q="${m.id}" style="background:#7a1020;color:#fff">Quitar</button>`;
     return `<div class="fila"><div style="flex:1;min-width:0"><b style="display:block">${h(m.titulo)}</b><small style="color:var(--gris)">${m.propia_de ? 'Propia' + (m.dedicatoria ? ' · ' + h(m.dedicatoria) : '') : h(m.compositor || '')}</small></div><span class="pill ${m.estilo === 'Fúnebre' ? 'p2' : ''}">${m.estilo}</span>${btn}</div>`;
   };
   v.innerHTML = `<section style="background:linear-gradient(160deg,#2a1238,#4a2466);color:#fff"><div class="res"><div><span class="num" style="color:var(--oro2)">${nrep}</span><small style="color:#d8c9e3">marchas en repertorio</small></div><div><span class="num" style="color:var(--oro2)">${max}</span><small style="color:#d8c9e3">máximo en repertorio</small></div></div>
-  <p class="nota" style="color:#d8c9e3;margin-top:10px">Cada marcha cuesta ${eur(pr)} y no gasta acciones. Puedes montar hasta ${P.montajes_dia || 10} al día (hoy te quedan ${por}). Solo en día de ensayo.</p></section>
+  <p class="nota" style="color:#d8c9e3;margin-top:10px">Cada marcha cuesta ${eur(pr)} y no gasta acciones. Puedes montar hasta ${P.montajes_dia || 10} al día (hoy te quedan ${por}). Puedes montar marchas cualquier día, también en Semana Santa.</p></section>
   <div class="tabs3"><button class="${MT === 'montar' ? 'on' : ''}" data-mt="montar">Montar</button><button class="${MT === 'mi' ? 'on' : ''}" data-mt="mi">Mi repertorio</button><button class="${MT === 'pro' ? 'on' : ''}" data-mt="pro">Propias</button></div>
   <section><div class="bt" style="margin-bottom:8px">${[['todas', 'Todas'], ['fun', 'Fúnebres'], ['ale', 'Alegres']].map(([k, t]) => `<button class="seg ${MF === k ? 'on' : ''}" data-f="${k}">${t}</button>`).join('')}</div>
   ${lista.map(fila).join('') || (MT === 'pro' ? '<p class="nota">Todavía no has compuesto ninguna marcha.</p>' : '<p class="nota">No hay marchas.</p>')}
-  <p class="nota">${CAT.filter(m => !m.propia_de).length} marchas en el catálogo · te caben ${libres} más · hoy puedes montar ${por} más</p></section>
+  <p class="nota">${MT !== 'montar' ? 'Puedes quitar marchas mientras te queden al menos ' + (P.min_repertorio || 10) + '. ' : ''}${CAT.filter(m => !m.propia_de).length} marchas en el catálogo · te caben ${libres} más · hoy puedes montar ${por} más</p></section>
   <button class="of2" id="vb">${MBACK === 'tienda' ? 'Volver a la Tienda' : 'Volver a Mi banda'}</button>
   ${MT === 'montar' ? `<div class="barra-fija"><button class="of" id="mn" ${!n || !ens || B.dinero < n * pr || n > libres || n > por ? 'disabled' : ''}>${n ? `Montar ${n} marcha${n > 1 ? 's' : ''} (${eur(n * pr)})` : 'Elige las marchas que quieras (hoy hasta ' + por + ')'}</button></div>` : ''}`;
   v.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { MT = b.dataset.mt; pMontaje(); });
@@ -1664,6 +1677,13 @@ async function pMontaje() {
   v.querySelectorAll('[data-id]').forEach(b => b.onclick = () => {
     const id = +b.dataset.id; if (MS.has(id)) MS.delete(id); else { if (MS.size >= por) return aviso('Hoy solo puedes montar ' + por + ' marchas más.'); MS.add(id); }
     pMontaje();
+  });
+  v.querySelectorAll('[data-q]').forEach(b => b.onclick = () => {
+    const m = CAT.find(x => x.id === +b.dataset.q), min = P.min_repertorio || 10;
+    if (nrep <= min) return aviso('Tu repertorio no puede quedarse con menos de ' + min + ' marchas.');
+    const e = ov(`<h2>Quitar «${h(m.titulo)}»</h2><div class="avo">${m.propia_de ? 'Es una marcha compuesta por ti: si la quitas <b>no podrás volver a montarla</b>.' : 'Podrás volver a montarla más adelante, pagando otra vez su precio.'}</div><button class="b2" id="qgo" style="background:#7a1020">Quitar del repertorio</button><button class="b3" id="no" style="text-align:center">Cancelar</button>`);
+    document.getElementById('no').onclick = () => e.remove();
+    document.getElementById('qgo').onclick = async () => { const {error} = await sb.rpc('quitar_marcha', {p_id: m.id}); e.remove(); if (error) return aviso(error.message); CAT = null; await init(); };
   });
   document.getElementById('vb').onclick = () => { if (MBACK === 'tienda') { tab = 'tienda'; volver(null); } else volver({v: 'mibanda'}); };
   const mn = document.getElementById('mn');
@@ -1673,7 +1693,6 @@ async function pMontaje() {
     if (error) { mn.disabled = false; return aviso(error.message); }
     MS = new Set(); CAT = null; await init();
   };
-  if (!ens) aviso('Hoy es día de procesiones: solo puedes montar marchas en día de ensayo (o si no tienes contratos).');
 }
 
 // ======== Composición ========
