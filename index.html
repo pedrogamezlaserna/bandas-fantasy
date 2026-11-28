@@ -420,7 +420,7 @@ async function pInicio() {
   const p = perfil(), a = B.acciones, base = xpDe(B.nivel), sig = xpDe(B.nivel + 1), sem = E.fase === 'semana', semP = sem && !SINCON;
   const prog = B.nivel >= 20 ? 100 : Math.round(100 * (B.experiencia - base) / (sig - base));
   document.getElementById('vista').innerHTML = `
-  <section id="ratq" hidden></section><section id="rfin" hidden></section>${new Date().toLocaleDateString('sv-SE', {timeZone: 'Europe/Madrid'}) === '2026-11-25' ? `<section style="border-left:5px solid #e8b84a"><h2>Novedad: el rescate de contratos</h2><p style="margin:0 0 6px">Ya no se puede quitar un contrato con una oferta normal. Las hermandades libres se ofertan como siempre. Las que ya tienen banda se pueden <b>rescatar</b> (pestaña Contratos, día de ensayo):</p><p class="nota" style="margin:0">• Cuesta 1 acción y ${P.rescate_xp} de experiencia, se gane o no.<br>• Si ganas, pagas el ${P.rescate_pct} % de tu dinero a la banda dueña y el contrato queda a ${P.rescate_anios} años, blindado.<br>• Probabilidad: ${P.rescate_base} % para el dueño y ${100 - P.rescate_base} % para ti. El dueño puede pagar para defenderse y subirla.<br>• Un rescate por banda y temporada. También puedes rescindir un contrato pagando una indemnización.</p></section>` : ''}
+  <section id="ratq" hidden></section><section id="rfin" hidden></section>${new Date().toLocaleDateString('sv-SE', {timeZone: 'Europe/Madrid'}) === '2026-11-25' ? `<section style="border-left:5px solid #e8b84a"><h2>Novedad: el rescate de contratos</h2><p style="margin:0 0 6px">Ya no se puede quitar un contrato con una oferta normal. Las hermandades libres se ofertan como siempre. Las que ya tienen banda se pueden <b>rescatar</b> (pestaña Contratos, día de ensayo):</p><p class="nota" style="margin:0">• Cuesta 1 acción y ${P.rescate_xp} de experiencia, se gane o no.<br>• Si ganas, pagas a la banda dueña el mayor entre el ${P.rescate_pct} % de tu dinero y la mitad de lo que paga la hermandad en una temporada y el contrato queda a ${P.rescate_anios} años, blindado.<br>• Probabilidad: ${P.rescate_base} % para el dueño y ${100 - P.rescate_base} % para ti. El dueño puede pagar para defenderse y subirla.<br>• Un rescate por banda y temporada. También puedes rescindir un contrato pagando una indemnización.</p></section>` : ''}
   ${sem ? '<section id="rsum" hidden></section>' : ''}
   <section>${semP ? `<h2>Semana Santa</h2><p style="margin:0 0 8px">Hoy es día de procesiones. Toca cada jornada cuando quieras. A las 00:00, las que no hayas tocado se resolverán solas y cobrarás solo la mitad de dinero y de experiencia.</p><div id="sj"></div>`
   : `<h2>${sem ? 'Semana Santa sin procesiones' : 'Día de ensayo'}</h2>${sem ? '<p style="margin:0 0 8px">Hoy es día de procesiones, pero tu banda no tiene contratos. Mientras tanto puedes ensayar, componer y montar marchas con tus acciones.</p>' : ''}<div class="fila2" style="margin-top:0"><span>Acciones de hoy</span><span>${a} de ${P.acciones_dia}</span></div>
@@ -640,6 +640,7 @@ const sigNivelC = n => [3, 6, 9, 15].find(x => x > n);
 
 let RI = {contra: [], mio: null, usado: false};
 const blind = ct => ct && ct.blindado_hasta >= E.temporada;
+const ofertaRescate = x => Math.max(Math.round(B.dinero * P.rescate_pct / 100), Math.round(pagoDe(x, B.nivel) * (P.rescate_min_pct || 50) / 100));
 function razonR(x) {
   const ct = C[x.id];
   if (E.fase !== 'ensayo') return 'El rescate se hace en el día de ensayo.';
@@ -648,16 +649,17 @@ function razonR(x) {
   if (B.acciones < 1) return 'No te quedan acciones hoy.';
   if (MYJ.has(x.jornada)) return 'Ya tienes un contrato ese día.';
   if (OFJ.has(x.jornada)) return 'Tienes una oferta ese día.';
+  if (B.dinero < ofertaRescate(x)) return 'Necesitas al menos ' + eur(ofertaRescate(x)) + ' para rescatarla.';
   return '';
 }
 const probDueno = a => { const base = a.n === 1 ? P.rescate_base : P.rescate_base_multi; return a.oferta_max > 0 ? Math.round(base + (100 - base) * Math.min(1, a.defensa / (2 * a.oferta_max))) : base; };
 function modalRescate(x) {
-  const of = Math.round(B.dinero * P.rescate_pct / 100), ct = C[x.id];
+  const of = ofertaRescate(x), ct = C[x.id];
   const e = ov(`<h2>Rescatar ${h(x.nombre)}</h2>
   <div class="avo">Este contrato lo tiene <b>${h(ct.bandas.nombre)}</b>. Se resuelve a las 00:00 y tu rival puede defenderse.</div>
   <div style="width:100%;max-width:420px;background:rgba(255,255,255,.14);border-radius:14px;padding:14px;text-align:left;font-size:15px;line-height:1.5">
   <b>Lo que te cuesta, ganes o pierdas:</b><br>• 1 acción de hoy<br>• ${P.rescate_xp} de experiencia (sin bajar de nivel)<br><br>
-  <b>Lo que pagas solo si ganas:</b><br>• ${eur(of)} (el ${P.rescate_pct} % de tu dinero) para ${h(ct.bandas.nombre)}. Queda reservado hasta el cierre y, si pierdes, se te devuelve.<br><br>
+  <b>Lo que pagas solo si ganas:</b><br>• ${eur(of)} para ${h(ct.bandas.nombre)} (el mayor entre el ${P.rescate_pct} % de tu dinero y la mitad de lo que paga la hermandad en una temporada). Queda reservado hasta el cierre y, si pierdes, se te devuelve.<br><br>
   <b>Probabilidad:</b> ${100 - P.rescate_base} % si solo atacas tú, menos si hay más bandas. Si el dueño paga para defenderse, baja.<br>
   <b>Si ganas:</b> contrato de ${P.rescate_anios} años, blindado ese tiempo.<br><br><small>Solo puedes intentar un rescate por temporada.</small></div>
   <button class="b2" id="rsgo">Rescatar</button><button class="b3" id="no" style="text-align:center">Cancelar</button>`);
@@ -1261,19 +1263,19 @@ function compas() {
 // ---- 7. La partitura al viento (vuelo)
 function partitura() {
   JUEGO = 'partitura';
-  const W = 360, H = 320, SUELO = 290, X = 90, PUERTAS = 18, ESP = 230, VEL = 150;
+  const W = 360, H = 320, SUELO = 290, X = 90, PUERTAS = 18, ESP = 250, VEL = 135;
   let vivo = true, raf = 0, last = 0, y = 150, vy = 0, esperando = true, scroll = 0, pasadas = 0, fase = 'vuela', finT = 0;
   let pu = [], reint = 1, mejor = 0;
-  const nuevasPuertas = () => { pu = []; for (let i = 0; i < PUERTAS; i++) { const hueco = 124 - 22 * i / PUERTAS; pu.push({x: 420 + i * ESP, c: 80 + hueco / 2 + Math.random() * (SUELO - 160 - hueco + 20), h: hueco, ok: false}); } };
+  const nuevasPuertas = () => { pu = []; let prev = 150; for (let i = 0; i < PUERTAS; i++) { const hueco = 175 - 25 * i / PUERTAS, lo = 20 + hueco / 2, hi = SUELO - 20 - hueco / 2, cc = Math.max(lo, Math.min(hi, prev + (Math.random() * 2 - 1) * 70)); prev = cc; pu.push({x: 420 + i * ESP, c: cc, h: hueco, ok: false}); } };
   nuevasPuertas();
   const meta = 420 + PUERTAS * ESP + 120;
   const enviar = hecho(() => { vivo = false; cancelAnimationFrame(raf); window.removeEventListener('keydown', kd); });
-  const e = mjShell('La partitura al viento', 'Toca para que la partitura suba y pásala por los huecos entre las ramas y los balcones. Hay que llevarla hasta el atril. Si fallas, puedes reintentarlo una vez y cuenta tu mejor marca.',
+  const e = mjShell('La partitura al viento', 'Toca para que la partitura suba y pásala por los huecos entre las ramas y los balcones (el próximo hueco aparece marcado con una línea dorada). Hay que llevarla hasta el atril. Si fallas, puedes reintentarlo una vez y cuenta tu mejor marca.',
     `<div class="stg" style="height:320px;padding:0"><canvas id="cv" width="${W * 2}" height="${H * 2}" style="width:100%;height:100%;display:block;touch-action:none"></canvas></div>
     <div class="mjb" style="margin-top:8px"><button class="of" id="bup" style="height:64px;margin:0;touch-action:manipulation">Subir</button></div>`,
     () => enviar(30));
   const c = document.getElementById('cv').getContext('2d'); c.scale(2, 2);
-  const sube = () => { if (fase !== 'vuela') return; esperando = false; vy = -300; snd('tic'); };
+  const sube = () => { if (fase !== 'vuela') return; esperando = false; vy = -285; snd('tic'); };
   const kd = ev => { if (ev.code === 'Space' || ev.code === 'ArrowUp') { ev.preventDefault(); sube(); } };
   window.addEventListener('keydown', kd);
   const fila = e.querySelector('.mjb');
@@ -1295,6 +1297,7 @@ function partitura() {
     pu.forEach(p => { const x = p.x - scroll; if (x < -60 || x > W + 10) return; const top = p.c - p.h / 2, bot = p.c + p.h / 2;
       c.fillStyle = '#2f6b3a'; c.fillRect(x, 0, 40, top); c.fillStyle = '#3f8a4a'; c.fillRect(x - 4, top - 14, 48, 14); c.fillStyle = '#f08a24'; for (let i = 0; i < 3; i++) { c.beginPath(); c.arc(x + 8 + i * 12, top - 20, 4, 0, 7); c.fill(); }
       c.fillStyle = '#2a2a33'; c.fillRect(x, bot, 40, SUELO - bot); c.fillStyle = '#4a4a55'; c.fillRect(x - 4, bot, 48, 10); c.fillStyle = '#6a3a2a'; c.fillRect(x + 4, bot - 14, 32, 14); c.fillStyle = '#d6405a'; c.beginPath(); c.arc(x + 14, bot - 18, 5, 0, 7); c.arc(x + 26, bot - 18, 5, 0, 7); c.fill(); });
+    const sg = pu.find(p => !p.ok); if (sg) { const x = sg.x - scroll; if (x < W) { c.strokeStyle = '#f4d98c'; c.lineWidth = 2; c.setLineDash([6, 5]); c.beginPath(); c.moveTo(x - 6, sg.c - sg.h / 2); c.lineTo(x + 46, sg.c - sg.h / 2); c.moveTo(x - 6, sg.c + sg.h / 2); c.lineTo(x + 46, sg.c + sg.h / 2); c.stroke(); c.setLineDash([]); } }
     const mx = meta - scroll; if (mx < W + 60) { c.fillStyle = '#5a3a1a'; c.fillRect(mx, SUELO - 70, 6, 70); c.fillRect(mx - 18, SUELO - 76, 42, 8); c.fillStyle = '#f6efd9'; c.fillRect(mx - 14, SUELO - 112, 34, 34); }
     hoja();
     c.fillStyle = '#fff'; c.font = '700 13px Manrope,sans-serif'; c.fillText(`Huecos: ${pasadas} de ${PUERTAS}`, 10, 20);
@@ -1305,7 +1308,7 @@ function partitura() {
     if (!vivo) return; const dt = Math.min(.033, (ts - (last || ts)) / 1000); last = ts;
     if (fase === 'vuela') {
       if (!esperando) {
-        vy += 900 * dt; y += vy * dt; scroll += VEL * dt;
+        vy += 800 * dt; y += vy * dt; scroll += VEL * dt;
         pu.forEach(p => { const x = p.x - scroll; if (!p.ok && x + 40 < X - 12) { p.ok = true; pasadas++; }
           if (X + 11 > x && X - 11 < x + 40 && (y - 14 < p.c - p.h / 2 || y + 14 > p.c + p.h / 2)) { fase = 'cae'; finT = 1.4; mejor = Math.max(mejor, puntuacion()); snd('mal'); } });
         if (y + 15 > SUELO || y - 15 < 0) { y = Math.max(15, Math.min(SUELO - 15, y)); if (fase === 'vuela') { fase = 'cae'; finT = 1.4; mejor = Math.max(mejor, puntuacion()); snd('mal'); } }
@@ -1344,7 +1347,7 @@ function pulso() {
 // ---- 2. Afinación
 function afinacion() {
   JUEGO = 'afinacion';
-  const ZW = [.20, .16, .12, .09, .07], RN = ZW.length; let r = 0, pts = [], raf = 0, t00 = performance.now(), centro = .5, vivo = true;
+  const ZW = [.14, .11, .09, .07, .055, .045], RN = ZW.length; let r = 0, pts = [], raf = 0, t00 = performance.now(), centro = .5, vivo = true;
   const room = `<svg class="bgs" viewBox="0 0 358 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true"><defs><linearGradient id="aw" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7a5568"/><stop offset="1" stop-color="#4a3040"/></linearGradient></defs><rect width="358" height="300" fill="url(#aw)"/><rect y="200" width="358" height="100" fill="#6b4529"/>${[0, 1, 2, 3, 4, 5, 6].map(i => `<rect x="${i * 60 - 10}" y="200" width="2" height="100" fill="#4f3220"/>`).join('')}<rect y="200" width="358" height="4" fill="#3a2516"/>
   <rect x="24" y="34" width="84" height="92" rx="4" fill="#2b1a2e"/><rect x="30" y="40" width="72" height="80" fill="#f4d98c"/><rect x="64" y="40" width="4" height="80" fill="#a97d2b"/><rect x="30" y="76" width="72" height="4" fill="#a97d2b"/>
   <rect x="150" y="40" width="190" height="8" rx="2" fill="#a97d2b"/><path d="M156 48h178v34l-89 14-89-14z" fill="#7a1020"/><image href="escudos/escudo-${String(B.escudo || 1).padStart(2, '0')}.png" x="223" y="49" width="44" height="44"/>
@@ -1361,7 +1364,7 @@ function afinacion() {
   let pos = 0;
   const tick = t => {
     if (!vivo) return;
-    const v = .55 + .13 * r, ph = ((t - t00) / 1000 * v) % 2; pos = ph < 1 ? ph : 2 - ph;
+    const v = .7 + .16 * r, ph = ((t - t00) / 1000 * v) % 2; pos = ph < 1 ? ph : 2 - ph;
     ag.style.left = `calc(${pos * 100}% - ${pos * 8}px)`; raf = requestAnimationFrame(tick);
   };
   raf = requestAnimationFrame(tick);
