@@ -838,7 +838,9 @@ async function resumenFin() {
   el.hidden = false;
   el.innerHTML = `<h2>Así acabó la temporada</h2><p class="nota" style="margin:0">Las juntas han decidido sobre los contratos que terminaban.</p>
   ${bl('Renovados', '#14532d', data.filter(x => x.tipo === 'renovada').map(x => ln(x, `Te renuevan ${h(x.motivo || '')}.`)))}
-  ${bl('No renovados', '#7a1020', data.filter(x => x.tipo === 'no_renovada').map(x => ln(x, 'La junta entrante no te renueva: la hermandad queda libre. Puedes volver a ofertarle.')))}`;
+  ${bl('No renovados', '#7a1020', data.filter(x => x.tipo === 'no_renovada').map(x => ln(x, 'La junta entrante no te renueva: la hermandad queda libre. Puedes volver a ofertarle.')))}
+  ${data.some(x => x.tipo === 'no_renovada') ? '<button class="of2" id="rfv" style="margin-top:12px">Ver hermandades libres</button>' : ''}`;
+  const bv = document.getElementById('rfv'); if (bv) bv.onclick = () => { tab = 'contratos'; SUB = null; vistaApp(); };
 }
 async function resumenOfertas() {
   const el = document.getElementById('rsum'); if (!el) return;
@@ -1621,11 +1623,13 @@ function pMiBanda() {
   <section><h2>Escudo</h2><div class="escs">${Array.from({length: P.num_escudos}, (_, i) => `<button class="eb ${B.escudo === i + 1 ? 'on' : ''}" data-e="${i + 1}" aria-label="Escudo ${i + 1}">${escudo(i + 1, 64)}</button>`).join('')}</div><p class="nota">Cambiar de escudo es gratis.</p></section>
   <section><h2>Repertorio</h2><div class="fila" style="padding-top:0"><div style="flex:1"><b style="display:block">${nm} de ${MAXREP()} marchas</b><small style="color:var(--gris)">${np} propias · el repertorio admite como máximo ${MAXREP()}</small></div></div>
   <button class="of2" id="mm">Ver y montar marchas</button><button class="of2" id="cm">Componer una marcha</button></section>
-  <section><h2>Avisos por correo</h2><label style="display:flex;gap:10px;align-items:center;margin:0"><input type="checkbox" id="avc" style="width:22px;height:22px;margin:0" ${B.avisos_correo === false ? '' : 'checked'}><span>Avisarme por correo si quieren quitarme un contrato</span></label></section>
+  <section><h2>Avisos por correo</h2><label style="display:flex;gap:10px;align-items:center;margin:0"><input type="checkbox" id="avc" style="width:22px;height:22px;margin:0" ${B.avisos_correo === false ? '' : 'checked'}><span>Avisarme por correo si quieren quitarme un contrato</span></label><label for="cmail" style="margin-top:12px">Tu correo para los avisos</label><input id="cmail" type="email" autocomplete="email" autocapitalize="none" placeholder="Cargando…"><p id="cmn" class="nota" style="margin:4px 0 0"></p><button class="of2" id="cmb">Guardar correo</button></section>
   <section><h2>Reglas</h2><p class="nota" style="margin:0 0 8px">Un repaso rápido de cómo funciona el juego.</p><button class="of2" id="vrg">Ver las reglas</button></section>
   <section><h2>Contraseña</h2><label for="cp1">Nueva contraseña</label><input id="cp1" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres"><label for="cp2">Repítela</label><input id="cp2" type="password" autocomplete="new-password"><button class="of2" id="cpb">Cambiar contraseña</button></section>`;
   const redo = () => { pMiBanda(); };
   document.getElementById('vrg').onclick = () => reglas(false);
+  sb.rpc('mi_correo').then(({data}) => { const i = document.getElementById('cmail'); if (!i) return; i.placeholder = 'tucorreo@ejemplo.com'; i.value = data || ''; if (!data) document.getElementById('cmn').textContent = 'Aún no tienes ningún correo guardado: sin él no podemos avisarte.'; });
+  document.getElementById('cmb').onclick = async () => { const {error} = await sb.rpc('guardar_correo', {p_correo: document.getElementById('cmail').value}); if (error) return aviso(error.message); aviso(''); document.getElementById('cmn').textContent = 'Correo guardado.'; };
   document.getElementById('avc').onchange = async ev => { const val = ev.target.checked; const {error} = await sb.rpc('set_avisos_correo', {p_valor: val}); if (error) { ev.target.checked = !val; return aviso(error.message); } B.avisos_correo = val; };
   document.getElementById('cpb').onclick = async () => { const r = await cambiarClave(document.getElementById('cp1').value, document.getElementById('cp2').value); if (r) return aviso(r); aviso(''); document.getElementById('cp1').value = document.getElementById('cp2').value = ''; alert('Contraseña cambiada.'); };
   v.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { FN.nombre = document.getElementById('nn').value; FN.proc = document.getElementById('np').value; FN.tipo = b.dataset.t; redo(); });
