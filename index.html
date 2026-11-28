@@ -1212,12 +1212,22 @@ function carrera() {
 
 
 // ---- 6. Al compás de la marcha (carriles)
+let CMODO = '';
+// Amarguras (M. Font de Anta, 1919): dos frases del tema inicial. [inicio, duración, frecuencia] en negras.
+const AMAR = (() => { const F = {C4: 261.63, F4: 349.23, G4: 392, Ab4: 415.3, Bb4: 466.16, C5: 523.25, D5: 587.33, Eb5: 622.25, F5: 698.46, G5: 783.99};
+  const seq = (t0, l) => { let t = t0; return l.map(([n, d]) => { const r = {t, d, n, f: F[n]}; t += d; return r; }); };
+  return seq(0, [['F4', 2], ['C4', 2], ['F4', 1], ['G4', 1], ['Bb4', 1.5], ['Ab4', .5], ['F4', 2], ['C4', 2], ['F4', 1], ['G4', 1], ['Ab4', 1.5], ['Bb4', .5], ['C5', 2]])
+    .concat(seq(24, [['C5', 2], ['F4', 2], ['C5', 1], ['D5', 1], ['F5', 1.5], ['Eb5', .5], ['C5', 2], ['F4', 2], ['C5', 1], ['D5', 1], ['Eb5', 1.5], ['F5', .5], ['G5', 2]])); })();
+const CLANE = n => ({C4: 0, F4: 0, G4: 1, Ab4: 1, Bb4: 1, C5: 2, D5: 2, Eb5: 3, F5: 3, G5: 3})[n];
 function compas() {
   JUEGO = 'compas';
+  if (!CMODO) CMODO = Math.random() < .5 ? 'amar' : 'azar';
+  const MEL = CMODO === 'amar';
   const W = 360, H = 300, LY = 250, CAI = 1.8, LN = 4, LW = W / LN;
-  const NOMB = ['Corneta', 'Caja', 'Bombo', 'Clarinete'], SON = ['corneta', 'caja', 'bombo', 'clarinete'], COL = ['#e8c34a', '#c0392b', '#8e5bd1', '#2e9e6a'];
+  const NOMB = MEL ? ['Grave', 'Medio', 'Agudo', 'Muy agudo'] : ['Corneta', 'Caja', 'Bombo', 'Clarinete'], SON = ['corneta', 'caja', 'bombo', 'clarinete'], COL = ['#e8c34a', '#c0392b', '#8e5bd1', '#2e9e6a'];
   const notas = []; let k = 0, last = -1, rep = 0;
-  for (let b = 0; b < 52; b++) {
+  if (MEL) AMAR.forEach(n => notas.push({t: 2 + n.t * 0.6, l: CLANE(n.n), f: n.f, est: 0}));
+  else for (let b = 0; b < 52; b++) {
     let l = Math.floor(Math.random() * LN); if (l === last && rep >= 2) l = (l + 1 + Math.floor(Math.random() * 3)) % LN;
     rep = l === last ? rep + 1 : 1; last = l;
     notas.push({t: 2 + b * 0.7, l, est: 0}); // est: 0 pendiente, 1 acertada, 2 fallada
@@ -1226,17 +1236,18 @@ function compas() {
   notas.sort((a, b) => a.t - b.t);
   let vivo = true, raf = 0, t0 = 0, pts = 0, fb = '', fbT = 0, fbC = '#fff'; const fl = [0, 0, 0, 0];
   const enviar = hecho(() => { vivo = false; cancelAnimationFrame(raf); });
-  const e = mjShell('Al compás de la marcha', 'Toca el instrumento de cada carril justo cuando la nota llegue al aro de su color: el aro se ilumina cuando es el momento.',
-    `<div class="stg" style="height:300px;padding:0"><canvas id="cv" width="${W * 2}" height="${H * 2}" style="width:100%;height:100%;display:block"></canvas></div>
+  const e = mjShell('Al compás de la marcha', MEL ? 'Toca cada nota cuando llegue al aro de su color y sonará la melodía de «Amarguras», de Manuel Font de Anta (1919). Si aciertas todas, oirás la marcha entera.' : 'Toca el instrumento de cada carril justo cuando la nota llegue al aro de su color: el aro se ilumina cuando es el momento.',
+    `<div class="bt" style="margin-bottom:8px"><button class="seg ${MEL ? '' : 'on'}" data-md="azar">Notas al azar</button><button class="seg ${MEL ? 'on' : ''}" data-md="amar">Amarguras</button></div><div class="stg" style="height:300px;padding:0"><canvas id="cv" width="${W * 2}" height="${H * 2}" style="width:100%;height:100%;display:block"></canvas></div>
     <div class="mjb" style="margin-top:8px;gap:6px">${NOMB.map((n, i) => `<button class="of" data-l="${i}" style="height:64px;margin:0;padding:0;background:${COL[i]};color:#fff;font-size:14px;touch-action:manipulation">${n}</button>`).join('')}</div>`,
     () => enviar(30));
+  e.querySelectorAll('[data-md]').forEach(b => b.onclick = () => { if (b.dataset.md === CMODO) return; CMODO = b.dataset.md; vivo = false; cancelAnimationFrame(raf); e.remove(); compas(); });
   const c = document.getElementById('cv').getContext('2d'); c.scale(2, 2);
   const ahora = () => (performance.now() - t0) / 1000;
   const toca = l => {
-    if (!vivo) return; snd(SON[l]); fl[l] = 0.18; const t = ahora();
+    if (!vivo) return; if (!MEL) snd(SON[l]); fl[l] = 0.18; const t = ahora();
     let m = null, md = 9; notas.forEach(n => { if (n.est === 0 && n.l === l) { const d = Math.abs(n.t - t); if (d < md) { md = d; m = n; } } });
-    if (m && md <= 0.22) { m.est = 1; const g = md < 0.08 ? 1 : md < 0.15 ? 0.7 : 0.4; pts += g; fb = g === 1 ? '¡Justo!' : g === 0.7 ? 'Bien' : 'Casi'; fbC = g === 1 ? '#f4d98c' : '#fff'; }
-    else { pts = Math.max(0, pts - 0.3); fb = 'Fuera de tiempo'; fbC = '#ff9b9b'; }
+    if (m && md <= 0.22) { m.est = 1; if (MEL) snd('corneta', m.f); const g = md < 0.08 ? 1 : md < 0.15 ? 0.7 : 0.4; pts += g; fb = g === 1 ? '¡Justo!' : g === 0.7 ? 'Bien' : 'Casi'; fbC = g === 1 ? '#f4d98c' : '#fff'; }
+    else { if (MEL) snd('mal'); pts = Math.max(0, pts - 0.3); fb = 'Fuera de tiempo'; fbC = '#ff9b9b'; }
     fbT = 0.45;
   };
   e.querySelectorAll('[data-l]').forEach(b => b.onpointerdown = () => toca(+b.dataset.l));
