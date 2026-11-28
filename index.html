@@ -1213,12 +1213,19 @@ function carrera() {
 
 // ---- 6. Al compás de la marcha (carriles)
 let CMODO = '';
-// Amarguras (M. Font de Anta, 1919): dos frases del tema inicial. [inicio, duración, frecuencia] en negras.
-const AMAR = (() => { const F = {C4: 261.63, F4: 349.23, G4: 392, Ab4: 415.3, Bb4: 466.16, C5: 523.25, D5: 587.33, Eb5: 622.25, F5: 698.46, G5: 783.99};
-  const seq = (t0, l) => { let t = t0; return l.map(([n, d]) => { const r = {t, d, n, f: F[n]}; t += d; return r; }); };
-  return seq(0, [['F4', 2], ['C4', 2], ['F4', 1], ['G4', 1], ['Bb4', 1.5], ['Ab4', .5], ['F4', 2], ['C4', 2], ['F4', 1], ['G4', 1], ['Ab4', 1.5], ['Bb4', .5], ['C5', 2]])
-    .concat(seq(24, [['C5', 2], ['F4', 2], ['C5', 1], ['D5', 1], ['F5', 1.5], ['Eb5', .5], ['C5', 2], ['F4', 2], ['C5', 1], ['D5', 1], ['Eb5', 1.5], ['F5', .5], ['G5', 2]])); })();
-const CLANE = n => ({C4: 0, F4: 0, G4: 1, Ab4: 1, Bb4: 1, C5: 2, D5: 2, Eb5: 3, F5: 3, G5: 3})[n];
+// Amarguras (M. Font de Anta, 1919): tema "grande" (compases 35-49 de la reducción a piano). [nota, duración en negras]
+const AMAR = (() => { const N = {C:0, D:2, E:4, F:5, G:7, A:9, B:11};
+  const mid = n => { const a = n.match(/^([A-G])(b?)(\d)$/); return 12 * (+a[3] + 1) + N[a[1]] - (a[2] ? 1 : 0); };
+  const T = 2 / 3;
+  const L = [['Db5',1],['C5',1],['Bb4',1.5],['Ab4',.5],['Bb4',2],['Eb4',2],
+    ['C5',1],['Bb4',1],['Ab4',1.5],['Gb4',.5],['Ab4',2],['Db4',2],
+    ['Bb4',1],['Ab4',1],['G4',1],['F4',1],['G4',1],['F4',1],['Eb4',1],['Db4',1],
+    ['C4',2],['Bb4',T],['Ab4',T],['G4',T],['C5',2],['F4',2],
+    ['C5',1],['D5',1],['F5',1.5],['Eb5',.5],['C5',2],['F4',2],
+    ['C5',1],['D5',1],['F5',1.5],['Eb5',.5],['G5',2],['C5',2],
+    ['Ab5',1],['G5',1],['F5',1],['Eb5',1],['G5',1],['F5',1],['Eb5',1.5],['Db5',.5],['C5',2]];
+  let t = 0; return L.map(([n, d]) => { const m = mid(n), r = {t, d, n, m, f: 440 * Math.pow(2, (m - 69) / 12)}; t += d; return r; }); })();
+const CLANE = n => { const m = AMAR.find(x => x.n === n).m; return m <= 68 ? 0 : m <= 72 ? 1 : m <= 76 ? 2 : 3; };
 function compas() {
   JUEGO = 'compas';
   if (!CMODO) CMODO = Math.random() < .5 ? 'amar' : 'azar';
