@@ -1214,45 +1214,52 @@ function carrera() {
 // ---- 6. Al compás de la marcha (carriles)
 function compas() {
   JUEGO = 'compas';
-  const W = 360, H = 300, LY = 250, CAI = 1.5, LN = 4, LW = W / LN;
+  const W = 360, H = 300, LY = 250, CAI = 1.8, LN = 4, LW = W / LN;
   const NOMB = ['Corneta', 'Caja', 'Bombo', 'Clarinete'], SON = ['corneta', 'caja', 'bombo', 'clarinete'], COL = ['#e8c34a', '#c0392b', '#8e5bd1', '#2e9e6a'];
   const notas = []; let k = 0, last = -1, rep = 0;
   for (let b = 0; b < 52; b++) {
     let l = Math.floor(Math.random() * LN); if (l === last && rep >= 2) l = (l + 1 + Math.floor(Math.random() * 3)) % LN;
     rep = l === last ? rep + 1 : 1; last = l;
-    notas.push({t: 2 + b * 0.6, l, est: 0}); // est: 0 pendiente, 1 acertada, 2 fallada
-    if (b > 6 && Math.random() < 0.25) notas.push({t: 2 + b * 0.6 + 0.3, l: (l + 1 + Math.floor(Math.random() * 3)) % LN, est: 0});
+    notas.push({t: 2 + b * 0.7, l, est: 0}); // est: 0 pendiente, 1 acertada, 2 fallada
+    if (b > 8 && Math.random() < 0.18) notas.push({t: 2 + b * 0.7 + 0.35, l: (l + 1 + Math.floor(Math.random() * 3)) % LN, est: 0});
   }
   notas.sort((a, b) => a.t - b.t);
-  let vivo = true, raf = 0, t0 = 0, pts = 0, fb = '', fbT = 0, fbC = '#fff';
+  let vivo = true, raf = 0, t0 = 0, pts = 0, fb = '', fbT = 0, fbC = '#fff'; const fl = [0, 0, 0, 0];
   const enviar = hecho(() => { vivo = false; cancelAnimationFrame(raf); });
-  const e = mjShell('Al compás de la marcha', 'Toca el instrumento de cada carril justo cuando la nota llegue a la línea dorada.',
+  const e = mjShell('Al compás de la marcha', 'Toca el instrumento de cada carril justo cuando la nota llegue al aro de su color: el aro se ilumina cuando es el momento.',
     `<div class="stg" style="height:300px;padding:0"><canvas id="cv" width="${W * 2}" height="${H * 2}" style="width:100%;height:100%;display:block"></canvas></div>
     <div class="mjb" style="margin-top:8px;gap:6px">${NOMB.map((n, i) => `<button class="of" data-l="${i}" style="height:64px;margin:0;padding:0;background:${COL[i]};color:#fff;font-size:14px;touch-action:manipulation">${n}</button>`).join('')}</div>`,
     () => enviar(30));
   const c = document.getElementById('cv').getContext('2d'); c.scale(2, 2);
   const ahora = () => (performance.now() - t0) / 1000;
   const toca = l => {
-    if (!vivo) return; snd(SON[l]); const t = ahora();
+    if (!vivo) return; snd(SON[l]); fl[l] = 0.18; const t = ahora();
     let m = null, md = 9; notas.forEach(n => { if (n.est === 0 && n.l === l) { const d = Math.abs(n.t - t); if (d < md) { md = d; m = n; } } });
-    if (m && md <= 0.2) { m.est = 1; const g = md < 0.07 ? 1 : md < 0.13 ? 0.7 : 0.4; pts += g; fb = g === 1 ? '¡Justo!' : g === 0.7 ? 'Bien' : 'Casi'; fbC = g === 1 ? '#f4d98c' : '#fff'; }
+    if (m && md <= 0.22) { m.est = 1; const g = md < 0.08 ? 1 : md < 0.15 ? 0.7 : 0.4; pts += g; fb = g === 1 ? '¡Justo!' : g === 0.7 ? 'Bien' : 'Casi'; fbC = g === 1 ? '#f4d98c' : '#fff'; }
     else { pts = Math.max(0, pts - 0.3); fb = 'Fuera de tiempo'; fbC = '#ff9b9b'; }
     fbT = 0.45;
   };
   e.querySelectorAll('[data-l]').forEach(b => b.onpointerdown = () => toca(+b.dataset.l));
   const pinta = t => {
     c.fillStyle = '#1d0e29'; c.fillRect(0, 0, W, H);
-    for (let i = 0; i < LN; i++) { c.fillStyle = i % 2 ? '#26122f' : '#2d1638'; c.fillRect(i * LW, 0, LW, H); c.fillStyle = COL[i] + '22'; c.fillRect(i * LW, LY - 20, LW, 40); }
+    for (let i = 0; i < LN; i++) { c.fillStyle = i % 2 ? '#26122f' : '#2d1638'; c.fillRect(i * LW, 0, LW, H); c.fillStyle = COL[i] + '22'; c.fillRect(i * LW, LY - 24, LW, 48);
+      if (fl[i] > 0) { c.fillStyle = COL[i] + '55'; c.fillRect(i * LW, 0, LW, H); }
+      c.fillStyle = COL[i]; c.font = '700 11px Manrope,sans-serif'; c.textAlign = 'center'; c.fillText(NOMB[i], i * LW + LW / 2, 36); c.textAlign = 'left'; }
     c.strokeStyle = '#e8c34a'; c.lineWidth = 3; c.beginPath(); c.moveTo(0, LY); c.lineTo(W, LY); c.stroke();
-    notas.forEach(n => { if (n.est === 1) return; const y = LY - (n.t - t) / CAI * LY; if (y < -20 || y > H + 20) return;
-      c.fillStyle = n.est === 2 ? '#555' : COL[n.l]; c.beginPath(); c.arc(n.l * LW + LW / 2, y, 17, 0, 7); c.fill(); c.strokeStyle = '#fff6'; c.lineWidth = 2; c.stroke(); });
+    for (let i = 0; i < LN; i++) { const cerca = notas.some(n => n.est === 0 && n.l === i && Math.abs(n.t - t) < 0.15);
+      c.beginPath(); c.arc(i * LW + LW / 2, LY, 25, 0, 7); c.fillStyle = cerca ? COL[i] + 'aa' : '#00000055'; c.fill(); c.strokeStyle = COL[i]; c.lineWidth = cerca ? 5 : 3; c.stroke(); }
+    notas.forEach(n => { if (n.est === 1) return; const y = LY - (n.t - t) / CAI * LY; if (y < -20 || y > H + 20) return; const x = n.l * LW + LW / 2;
+      if (n.est === 0 && y < LY) { c.strokeStyle = COL[n.l] + '66'; c.lineWidth = 4; c.beginPath(); c.moveTo(x, y); c.lineTo(x, LY - 25); c.stroke(); }
+      c.fillStyle = n.est === 2 ? '#555' : COL[n.l]; c.beginPath(); c.arc(x, y, 20, 0, 7); c.fill(); c.strokeStyle = '#fff'; c.lineWidth = 3; c.stroke();
+      c.fillStyle = '#ffffffcc'; c.beginPath(); c.arc(x, y, 6, 0, 7); c.fill(); });
     c.fillStyle = '#fff'; c.font = '700 13px Manrope,sans-serif'; c.fillText(`${Math.round(Math.max(0, pts) / notas.length * 100)} %`, 10, 20);
     if (fbT > 0) { c.textAlign = 'center'; c.font = '700 22px Manrope,sans-serif'; c.fillStyle = fbC; c.fillText(fb, W / 2, 130); c.textAlign = 'left'; }
   };
   let ult = 0;
   const tick = ts => {
     if (!vivo) return; if (!t0) t0 = ts; const t = (ts - t0) / 1000, dt = Math.min(.05, t - ult); ult = t; fbT -= dt;
-    notas.forEach(n => { if (n.est === 0 && t > n.t + 0.2) n.est = 2; });
+    notas.forEach(n => { if (n.est === 0 && t > n.t + 0.22) n.est = 2; });
+    for (let q = 0; q < LN; q++) fl[q] = Math.max(0, fl[q] - dt);
     pinta(t);
     if (t > notas[notas.length - 1].t + 1) { vivo = false; return enviar(Math.round(Math.min(100, Math.max(0, pts) / notas.length * 100))); }
     raf = requestAnimationFrame(tick);
